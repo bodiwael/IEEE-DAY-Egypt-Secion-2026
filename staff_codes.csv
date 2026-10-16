@@ -1,0 +1,19 @@
+staff_id,name,role,bus,code
+R1,Coordinator Bus R1,bus,R1,PCFEAA7P
+R2,Coordinator Bus R2,bus,R2,YERHN9ET
+R3,Coordinator Bus R3,bus,R3,GLXZ9PMR
+R4,Coordinator Bus R4,bus,R4,EZGYNHY8
+R5,Coordinator Bus R5,bus,R5,43WK6TKT
+R6,Coordinator Bus R6,bus,R6,5G8RN694
+R7,Coordinator Bus R7,bus,R7,B77ST3L2
+R8,Coordinator Bus R8,bus,R8,NFY4Q9QU
+O1,Coordinator Bus O1,bus,O1,ZUNEQHDD
+G1,Gate staff 1,gate,,MYNGMB4Y
+G2,Gate staff 2,gate,,GZ2K6SZ9
+K1,Kit desk 1,kit,,M666MFMD
+L1,Lunch desk 1,lunch,,2SMEWKGZ
+ACT1,Activity 1 staff,a1,,7FFPY5DJ
+ACT2,Activity 2 staff,a2,,PDG8LMHT
+ACT3,Activity 3 staff,a3,,E67T72RH
+TB1,Transport back staff,back,,NCVEUYKJ
+ADMIN,Admin,admin,,52T95VSU
