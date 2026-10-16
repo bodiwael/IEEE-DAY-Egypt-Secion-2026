@@ -18,7 +18,7 @@ button.s{background:#fff;color:var(--n);border:2px solid var(--l);box-shadow:non
 .res{border-radius:22px;padding:16px;color:#fff;margin:10px 0}.an .res{animation:pop .35s cubic-bezier(.2,1.6,.4,1)}@keyframes pop{from{transform:scale(.85);opacity:0}}
 .ok{background:linear-gradient(135deg,#6abf4b,#2fa36b)}.dup{background:linear-gradient(135deg,#f9a51a,#f58220)}.bad{background:linear-gradient(135deg,#e4415f,#cc1a3e)}
 .rh{display:flex;gap:10px;align-items:center}.rh .big{font-size:38px}.an .big{animation:bn .6s}@keyframes bn{0%{transform:scale(0)}60%{transform:scale(1.4)}100%{transform:scale(1)}}.res h2{margin:0;font-size:21px}.res small{opacity:.95}
-.chips{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.c{background:#fff;color:var(--t);border-radius:12px;padding:6px 10px;font-weight:800}.c small{display:block;color:var(--m);font-weight:600;font-size:10px}.c.sz{font-size:24px;background:#fff8e1;color:#b45f00}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.c{background:#fff;color:var(--t);border-radius:12px;padding:6px 10px;font-weight:800}.c small{display:block;color:var(--m);font-weight:600;font-size:10px}.c.sz{font-size:24px;background:#fff8e1;color:#b45f00}.c.bz{font-size:24px;background:#e3f4ff;color:#0072bc}
 .info{display:inline-block;background:var(--b);color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;font-size:13px;cursor:pointer;vertical-align:middle;transition:.2s}.info:active{transform:scale(1.3)}
 .row{display:flex;align-items:center;gap:9px;padding:9px 2px;border-bottom:1px solid var(--l)}.an .row{animation:up .3s both;animation-delay:calc(var(--i)*14ms)}@keyframes up{from{transform:translateY(8px);opacity:0}}
 .row>b{flex:1;font-size:15px}.row small{display:block;color:var(--m);font-weight:500}.av{width:38px;height:38px;border-radius:50%;color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
@@ -29,110 +29,137 @@ table{width:100%;border-collapse:collapse;font-size:13px}th{background:var(--l);
 .dg{display:grid;grid-template-columns:1fr 1fr;gap:9px}.dg div{background:#f4f9ff;border-radius:12px;padding:8px;word-break:break-all}.dg small{display:block;color:var(--m);font-size:11px}
 .sheet{position:fixed;inset:0;background:#0b2a4a88;display:flex;align-items:flex-end;z-index:9;animation:fi .2s}@keyframes fi{from{opacity:0}}.sheet>div{background:#fff;width:100%;max-width:780px;margin:auto;border-radius:24px 24px 0 0;padding:16px;max-height:85vh;overflow:auto;animation:su .3s}@keyframes su{from{transform:translateY(60px)}}
 .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--t);color:#fff;padding:11px 18px;border-radius:30px;z-index:20;animation:up .3s;font-weight:600}
-.err{background:#fff1f3;border:2px solid var(--r);color:var(--r);border-radius:14px;padding:10px;font-size:14px;margin:8px 0}
+.row a{color:var(--n);font-weight:700;text-decoration:none}.err{background:#fff1f3;border:2px solid var(--r);color:var(--r);border-radius:14px;padding:10px;font-size:14px;margin:8px 0}
 </style></head><body><div class="bar"></div><img class="ban" src="__BANNER__" alt="IEEE Day"><div id="app" class="w"></div><div id="sh"></div>
 <script>
-const DATA=__DATA__,W=__W__,SALT="__SALT__",API_DEFAULT="";
+const DATA=__DATA__,SALT="__SALT__",BUILD="__BUILD__",API_DEFAULT="__API__";
 let P=[],PM={},T={};
 const CAT={AT:'Attendee',FO:'Former Officer',VIP:'VIP',YP:'YP',SAC:'SAC',AMB:'Ambassador',VOL:'Volunteer'};
-const ST={bus:['Bus Check-in','🚌','#f58220'],gate:['Main Gate','🚪','#00adef'],kit:['Kit','🎒','#93308f'],lunch:['Lunch','🍽️','#4fa832'],a1:['Activity 1','🎯','#cc1a3e'],a2:['Activity 2','🧩','#e89200'],a3:['Activity 3','🚀','#0072bc'],back:['Transport Back','🏁','#00a99d']};
-const CO=['bus','kit','lunch','a1','a2','a3','back'];
+const ST={bus:['Morning Bus','🚌','#f58220'],gate:['Arrival · no bus','🚪','#00adef'],kit:['Kit','🎒','#93308f'],lunch:['Lunch','🍽️','#4fa832'],mtn:['Bus → Mountain','⛰️','#cc1a3e'],sand:['Bus → Sandboard','🏜️','#e89200'],falls:['Bus → Falls','💦','#0072bc'],back:['Bus → Return','🏁','#00a99d']};
+const LEG=['mtn','sand','falls','back'],RS={bus:['bus','kit','lunch',...LEG],reg:['gate','kit','lunch'],kit:['kit','lunch']};
+const ROLE={bus:'Bus lead',reg:'Registration',kit:'Packages',joker:'Joker',admin:'Lead'};
 const $=s=>document.querySelector(s),J=k=>JSON.parse(localStorage.getItem(k)||'null'),uuid=()=>crypto.randomUUID();
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)),nz=s=>s.toUpperCase().replace(/[^A-Z0-9]/g,'');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';'),tm=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 let EV=J('ev')||[],S=J('sess'),view='scan',res=null,q='',flt='',D={},V=new Set(),MS=null,SE='',sy=0;
 let API=localStorage.getItem('api')||API_DEFAULT;{const a=new URLSearchParams(location.search).get('api');if(a){localStorage.setItem('api',a);API=a;history.replaceState(null,'',location.pathname)}}
 const save=()=>localStorage.setItem('ev',JSON.stringify(EV));
+const adm=()=>S.r==='admin'||S.r==='joker';
 const sha=async s=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(SALT+s)))].map(x=>x.toString(16).padStart(2,'0')).join('');
-async function unwrap(w,pin){const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pin),'PBKDF2',false,['deriveKey']);const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(w[0]),iterations:200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);return crypto.subtle.decrypt({name:'AES-GCM',iv:b64(w[1])},k,b64(w[2]))}
 async function loadP(k){const key=await crypto.subtle.importKey('raw',b64(k),'AES-GCM',false,['decrypt']);const d=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(DATA[0])},key,b64(DATA[1]))));
  P=d.P.map(a=>({u:a[0],id:a[1],n:a[2],e:a[3],p:a[4],c:a[5],b:a[6],nid:a[7],t:a[8],ph:a[9]}));PM={};P.forEach(p=>PM[p.u]=p);T=d.T}
-function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),2800)}
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3200)}
 function beep(ok){navigator.vibrate&&navigator.vibrate(ok?60:[80,60,80]);try{const a=new AudioContext(),o=a.createOscillator();o.frequency.value=ok?880:220;o.connect(a.destination);o.start();o.stop(a.currentTime+.12)}catch{}}
 function idx(){D={};V=new Set(EV.filter(e=>e.st==='void').map(e=>e.ref));EV.filter(e=>e.uid&&!V.has(e.id)).sort((a,b)=>a.ts-b.ts).forEach(e=>{(D[e.uid]=D[e.uid]||{})[e.st]??=e})}
-const stations=()=>S.r==='admin'?Object.keys(ST):S.r==='bus'?CO:[S.r];
+const stations=()=>adm()?Object.keys(ST):RS[S.r]||[S.r];
 const mine=()=>P.filter(p=>D[p.u]?.bus?.bus===S.bus);
 const closed=()=>EV.some(e=>e.st==='report'&&e.bus===S.bus&&!V.has(e.id));
-async function login(){const sid=nz($('#sid').value),code=nz($('#pin').value);if(!W[sid])return toast('Unknown Staff ID');let K;try{K=await unwrap(W[sid],code)}catch{return toast('Wrong access code')}
- const kb=btoa(String.fromCharCode(...new Uint8Array(K)));await loadP(kb);const t=T[sid];S={sid,n:t.n,r:t.r,bus:t.bus,pt:t.pt,e:t.e,k:kb,h:await sha(code),st:t.r==='admin'?'gate':t.r==='bus'?'bus':t.r};
- localStorage.setItem('sess',JSON.stringify(S));localStorage.setItem('lastsid',sid);view=t.r==='admin'?'stats':'scan';flt='';res=null;render();sync()}
-function logout(){S=null;localStorage.removeItem('sess');P=[];res=null;render()}
+const lead=bus=>{const t=Object.values(T).find(t=>t.r==='bus'&&t.bus===bus);return t?` · lead ${t.n}${t.ph?' '+t.ph:''}`:''};
+const tel=n=>n?` · <a href="tel:${esc(n)}" onclick="event.stopPropagation()">📞 ${esc(n)}</a>`:'';
+async function post(o){const r=await fetch(API,{method:'POST',body:JSON.stringify(o)}),t=await r.text();try{return JSON.parse(t)}catch{throw new Error('Backend returned a web page, not data. Deploy as Web app, Execute as Me, access = Anyone, URL ending /exec. Check Apps Script > Executions.')}}
+const netErr=x=>/Failed to fetch|Load failed|NetworkError/.test(x.message)?'Cannot reach the backend. Check internet and the URL (ends /exec, access Anyone).':x.message;
+async function login(){const sid=nz($('#sid').value),code=nz($('#pin').value);if(!sid||!code)return toast('Enter your Staff ID and code');if(!API)return toast('Backend not set – tap 🔗 Backend below');
+ const bt=$('#go');bt.disabled=true;bt.textContent='Signing in…';let j;
+ try{j=await post({op:'login',sid,auth:await sha(sid+code)})}catch(x){bt.disabled=false;bt.textContent='Enter 🚀';return toast(netErr(x))}
+ bt.disabled=false;bt.textContent='Enter 🚀';
+ if(j.error)return toast(j.error==='locked'?'Too many wrong tries – wait 10 minutes':j.error==='auth'?'Wrong Staff ID or code':'Backend error: '+j.error);
+ try{await loadP(j.k)}catch{return toast(`Site (${BUILD}) and backend (${j.build}) are from different builds – redeploy both`)}
+ const t=T[sid];if(!t)return toast('Staff ID not in this build');
+ S={sid,n:t.n,r:t.r,bus:t.bus,pt:t.pt,ph:t.ph,e:t.e,k:j.k,h:await sha(sid+code),st:{bus:'bus',reg:'gate'}[t.r]||'kit'};
+ localStorage.setItem('sess',JSON.stringify(S));localStorage.setItem('lastsid',sid);view=adm()?'stats':'scan';flt='';res=null;render();sync()}
+function logout(){if(EV.some(e=>!e.s)&&!confirm('Some scans are not synced yet. They stay on this phone and sync after the next sign-in. Sign out?'))return;S=null;localStorage.removeItem('sess');P=[];res=null;render()}
 function setSt(k){S.st=k;localStorage.setItem('sess',JSON.stringify(S));flt='';res=null;q='';render()}
 function show(k,p,msg,eid){res={k,u:p?.u,msg,eid};beep(k==='ok');render()}
-function record(p){idx();const st=S.st,d=D[p.u]?.[st];
- if(d)return show('dup',p,`Already registered at ${tm(d.ts)} by ${d.by}`+(st==='bus'?` · bus ${d.bus}`:''));
- if(st==='bus'){if(S.r==='admin')return toast('Boarding is done from a bus coordinator account');if(closed())return toast('Your bus is confirmed and locked')}
- const e={id:uuid(),uid:p.u,st,ts:Date.now(),sid:S.sid,by:S.n};if(st==='bus'){e.bus=S.bus;e.pt=S.pt}EV.push(e);save();idx();
- const w=[],b=D[p.u].bus;
- if(st==='bus'&&p.p!==S.pt)w.push(p.p==='No'?'Not assigned to a bus':'Assigned to '+p.p);
- if(st!=='bus'&&st!=='gate'&&!b&&!D[p.u].gate)w.push('Not checked in this morning');
- if(S.bus&&st!=='bus'&&st!=='gate'&&b&&b.bus!==S.bus)w.push('Not in your group (bus '+b.bus+')');
- if(S.bus&&st!=='bus'&&st!=='gate'&&!b)w.push('Not in your group');
- show(w.length?'dup':'ok',p,w.join(' · ')||'Registered ✓ '+tm(e.ts),e.id);sync()}
+function ask(k,p,msg,act,al){res={k,u:p.u,msg,act,al};beep(0);render()}
+const mailEv=(p,b,ref)=>({id:uuid(),st:'mail',uid:p.u,ref,ts:Date.now(),sid:S.sid,by:S.n,bus:b.bus,pt:b.pt,to:[p.n,p.e],tid:p.id,nid:p.nid,t:p.t,lead:[S.n,S.ph||'']});
+function board(p){const e={id:uuid(),uid:p.u,st:'bus',ts:Date.now(),sid:S.sid,by:S.n,bus:S.bus,pt:S.pt};EV.push(e,mailEv(p,e,e.id));return e}
+function record(p,how){idx();const st=S.st,d=D[p.u]?.[st],b=D[p.u]?.bus,leg=LEG.includes(st);
+ if(d)return show('dup',p,`Already registered at ${tm(d.ts)} by ${d.by}`+(st==='bus'?` · Bus ${d.bus}`:''));
+ if(st==='bus'){if(S.r!=='bus')return toast('Boarding is done from a bus lead account');if(closed())return toast('Your bus is confirmed and locked')}
+ if(leg&&S.bus&&!how){
+  if(!b)return ask('dup',p,`Not on any bus yet. Add to Bus ${S.bus} for the rest of the day? (confirmation email is sent)`,'add',`➕ Add to Bus ${S.bus}`);
+  if(b.bus!==S.bus)return ask('bad',p,`WRONG BUS – belongs to Bus ${b.bus}${lead(b.bus)}. Send them to their own bus.`,'ov','Allow anyway (logged)')}
+ let e;if(st==='bus'||how==='add')e=board(p);
+ if(st!=='bus'){e={id:uuid(),uid:p.u,st,ts:Date.now(),sid:S.sid,by:S.n};if(how==='ov')e.ov=b.bus;EV.push(e)}
+ save();idx();
+ const w=[],B=D[p.u].bus;
+ if(st==='bus'&&p.p!==S.pt)w.push(p.p==='No'?'Was not assigned to a bus':'Was assigned to '+p.p);
+ if(how==='add'&&closed())w.push('Added after your bus report was sent');
+ if(how==='ov')w.push(`Override logged – belongs to Bus ${b.bus}`);
+ if(leg&&!S.bus&&!B)w.push('Not on any bus');
+ if(!leg&&st!=='bus'&&st!=='gate'&&!B&&!D[p.u].gate)w.push('Not checked in this morning');
+ if(S.bus&&!leg&&st!=='bus'&&st!=='gate')if(B?.bus!==S.bus)w.push(B?'Not in your group (Bus '+B.bus+')':'Not in your group');
+ show(w.length?'dup':'ok',p,w.join(' · ')||(B&&st!=='bus'?`Bus ${B.bus} ✓ `:'Registered ✓ ')+tm(e.ts)+(st==='bus'||how==='add'?' · ✉ email in 1 min':''),e.id);sync()}
 function handle(code){code=String(code).trim();if(!code)return;let m=P.filter(p=>p.u===code.toUpperCase());if(!m.length){const d=code.replace(/\D/g,'');m=P.filter(p=>p.id===d||p.id===d.padStart(3,'0'))}
  if(!m.length){res={k:'bad',msg:'No one has ID '+esc(code)};beep(0);return render()}
  if(m.length>1){beep(0);$('#sh').innerHTML=`<div class="sheet"><div><h2>⚠️ ID ${m[0].id} belongs to ${m.length} people</h2><p>Who is this?</p>${m.map(p=>`<div class="row"><div class="av" style="background:${p.c=='FO'?'#93308f':'#00adef'}">${p.n[0]}</div><b>${esc(p.n)}<small>${CAT[p.c]} ${esc(p.b)}</small></b><button class="m" onclick="cl();record(PM['${p.u}'])">${CAT[p.c]}</button></div>`).join('')}<button class="m s" style="margin-top:10px" onclick="cl()">Cancel</button></div></div>`;return}
  record(m[0])}
 const cl=()=>$('#sh').innerHTML='';
-function undo(eid){EV.push({id:uuid(),st:'void',ref:eid,ts:Date.now(),sid:S.sid});save();res=null;render();sync()}
-function mailer(u){idx();const p=PM[u],b=D[u]?.bus;if(!b||D[u].mail)return;EV.push({id:uuid(),st:'mail',uid:u,ts:Date.now(),sid:S.sid,by:S.n,bus:b.bus,pt:b.pt,to:[p.n,p.e]});save();toast('✉ Confirmation email queued');render();sync()}
-const mailBtn=u=>{const m=D[u]?.mail;if(!m)return`<button class="m s" onclick="mailer('${u}')">✉ Confirm</button>`;const s=MS?.st?.[m.id];return s==='sent'?'<span class="tag g">✉ Sent</span>':s==='fail'?'<span class="tag rd">✉ Failed</span>':'<span class="tag o">✉ Queued</span>'};
-function confirmBus(){idx();const l=mine();if(!l.length)return toast('No one is on your bus yet');const nm=l.filter(p=>!D[p.u].mail).length;
- if(!confirm(`Confirm bus ${S.bus} with ${l.length} attendees?\n${nm} of them have no confirmation email yet.\nThe full report is emailed and the bus is locked.`))return;
- EV.push({id:uuid(),st:'report',bus:S.bus,pt:S.pt,ts:Date.now(),sid:S.sid,by:S.n,to:S.e?[S.e]:[],rows:l.map(p=>[p.id,p.n,CAT[p.c],p.b,p.t,p.e,p.ph,tm(D[p.u].bus.ts),D[p.u].mail?'yes':'no'])});save();toast('📨 Report queued');render();sync()}
-const det=p=>`<div class="dg">${[['🎫 Ticket ID',p.id],['🪪 National ID',p.nid||'—'],['👕 T-shirt',p.t||'—'],['🏷️ Category',CAT[p.c]],['✉️ Email',p.e],['📞 Phone',p.ph||'—'],['🏫 Branch',p.b||'—'],['📍 Point',p.p==='No'?'No bus':p.p]].map(([a,b])=>`<div><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>`;
-function info(u){idx();const p=PM[u],d=D[u]||{};$('#sh').innerHTML=`<div class="sheet" onclick="if(event.target==this)cl()"><div><h2>${esc(p.n)}</h2>${det(p)}<h3>Timeline</h3>${Object.entries(ST).map(([k,v])=>`<div class="row"><span>${v[1]}</span><b>${v[0]}${k=='bus'&&d.bus?' · '+d.bus.bus:''}</b>${d[k]?`<span class="tag g">${tm(d[k].ts)} · ${esc(d[k].by)}</span>`:'<span class="tag" style="background:#c5d3e2">—</span>'}</div>`).join('')}<button class="m" style="width:100%;margin-top:10px" onclick="cl()">Close</button></div></div>`}
-function resCard(){if(!res)return'';if(res.k==='bad')return`<div class="res bad"><div class="rh"><span class="big">❌</span><h2>${res.msg}</h2></div></div>`;
- const p=PM[res.u],e=D[p.u]?.[S.st],ic=res.k==='ok'?'✅':'⚠️';
+function undo(eid){idx();const m=EV.find(e=>e.st==='mail'&&e.ref===eid&&!V.has(e.id));EV.push({id:uuid(),st:'void',ref:eid,ts:Date.now(),sid:S.sid});if(m)EV.push({id:uuid(),st:'void',ref:m.id,ts:Date.now(),sid:S.sid});save();res=null;toast(m?'Undone – email cancelled':'Undone');render();sync()}
+function mailer(u){idx();const p=PM[u],b=D[u]?.bus;if(!b||D[u].mail)return;EV.push(mailEv(p,b,b.id));save();toast('✉ Confirmation email queued');render();sync()}
+const mailBtn=u=>{const m=D[u]?.mail;if(!m)return`<button class="m s" onclick="mailer('${u}')">✉ Send email</button>`;const s=MS?.st?.[m.id];return s==='sent'?'<span class="tag g">✉ Sent</span>':s==='fail'?'<span class="tag rd">✉ Failed</span>':s==='cancel'?'<span class="tag" style="background:#8aa">✉ Cancelled</span>':'<span class="tag o">✉ Queued</span>'};
+function confirmBus(){idx();const l=mine();if(!l.length)return toast('No one is on your bus yet');
+ if(!confirm(`Confirm Bus ${S.bus} with ${l.length} attendees?\nThe full report (with National IDs) is emailed and boarding is locked.`))return;
+ EV.push({id:uuid(),st:'report',bus:S.bus,pt:S.pt,ts:Date.now(),sid:S.sid,by:S.n,to:S.e?[S.e]:[],rows:l.map(p=>[p.id,p.n,CAT[p.c],p.b,p.nid,p.t,p.ph,tm(D[p.u].bus.ts),D[p.u].mail?'yes':'no'])});save();toast('📨 Report queued');render();sync()}
+const det=p=>{const b=D[p.u]?.bus;return`<div class="dg">${[['🎫 Ticket ID',p.id],['🪪 National ID',p.nid||'—'],['👕 T-shirt',p.t||'—'],['🚌 Bus',b?'Bus '+b.bus:'—'],['🏷️ Category',CAT[p.c]],['📞 Phone',p.ph||'—'],['✉️ Email',p.e],['📍 Point',p.p==='No'?'No bus':p.p],['🏫 Branch',p.b||'—']].map(([a,b])=>`<div><small>${a}</small><b>${esc(b)}</b></div>`).join('')}</div>`};
+function info(u){idx();const p=PM[u],d=D[u]||{};$('#sh').innerHTML=`<div class="sheet" onclick="if(event.target==this)cl()"><div><h2>${esc(p.n)}</h2>${det(p)}<h3>Timeline</h3>${Object.entries(ST).map(([k,v])=>`<div class="row"><span>${v[1]}</span><b>${v[0]}${k=='bus'&&d.bus?' · '+d.bus.bus:''}</b>${d[k]?`<span class="tag ${d[k].ov?'rd':'g'}">${tm(d[k].ts)} · ${esc(d[k].by)}</span>`:'<span class="tag" style="background:#c5d3e2">—</span>'}</div>`).join('')}<button class="m" style="width:100%;margin-top:10px" onclick="cl()">Close</button></div></div>`}
+function resCard(){if(!res)return'';if(!res.u)return`<div class="res bad"><div class="rh"><span class="big">❌</span><h2>${res.msg}</h2></div></div>`;
+ const p=PM[res.u],e=res.act?null:D[p.u]?.[S.st],ic={ok:'✅',dup:'⚠️',bad:'🚫'}[res.k],b=D[p.u]?.bus;
  return`<div class="res ${res.k}"><div class="rh"><span class="big">${ic}</span><div><h2>${esc(p.n)} <span class="info" onclick="info('${p.u}')">ⓘ</span></h2><small>${esc(res.msg||'')}</small></div></div>
- <div class="chips"><div class="c"><small>TICKET ID</small>${p.id}</div><div class="c"><small>NATIONAL ID</small>${esc(p.nid||'—')}</div><div class="c sz"><small>T-SHIRT</small>👕 ${esc(p.t||'—')}</div><div class="c"><small>${CAT[p.c].toUpperCase()}</small>${p.p==='No'?'No bus':p.p}</div></div>
- <div style="display:flex;gap:8px;flex-wrap:wrap">${S.st==='bus'&&D[p.u]?.bus?.bus===S.bus?mailBtn(p.u):''}${e&&(e.sid===S.sid||S.r==='admin')&&!(S.st==='bus'&&D[p.u].mail)?`<button class="m s" onclick="undo('${e.id}')">↩ Undo</button>`:''}<button class="m s" onclick="res=null;render()">Next ➜</button></div></div>`}
-function busCard(){if(S.st!=='bus'||S.r!=='bus')return'';const n=mine().length,c=closed();
- return`<div class="card" style="border-left:6px solid var(--o)"><b>🚌 Bus ${esc(S.bus)} · ${esc(S.pt)}</b> <span class="tag ${c?'g':'o'}">${c?'Confirmed & locked':n+' on board'}</span><p style="margin:6px 0;color:var(--m);font-size:13px">Tap ✉ Confirm beside each person to email them. When everyone is on board, send the full report.</p>${c?'':`<button class="m" style="width:100%;background:linear-gradient(135deg,#f58220,#cc1a3e)" onclick="confirmBus()">📨 Confirm bus & send full report</button>`}</div>`}
-function src(){if(q){const s=q.toLowerCase();return P.filter(p=>(p.n+' '+p.id+' '+p.u).toLowerCase().includes(s))}
- if(S.r==='bus'||(S.bus&&S.st!=='gate')){const f=flt||(S.st==='bus'?'exp':'mine');if(f==='all')return P;if(S.st==='bus')return f==='mine'?mine():P.filter(p=>p.p===S.pt);return f==='miss'?mine().filter(p=>!D[p.u]?.[S.st]):mine()}return P}
-function pills(){if(!(S.r==='bus')||q)return'';const f=flt||(S.st==='bus'?'exp':'mine'),co=ST[S.st][2],m=mine();
- const L=S.st==='bus'?[['exp','Expected · '+P.filter(p=>p.p===S.pt).length],['mine','On my bus · '+m.length],['all','All']]:[['mine','My group · '+m.length],['miss',(S.st==='back'?'🚨 Missed · ':'Not yet · ')+m.filter(p=>!D[p.u]?.[S.st]).length],['all','All']];
+ <div class="chips"><div class="c bz"><small>BUS</small>🚌 ${b?esc(b.bus):p.p==='No'?'—':esc(p.p)}</div><div class="c sz"><small>T-SHIRT</small>👕 ${esc(p.t||'—')}</div><div class="c"><small>TICKET ID</small>${p.id}</div><div class="c"><small>NATIONAL ID</small>${esc(p.nid||'—')}</div><div class="c"><small>${CAT[p.c].toUpperCase()}</small>${p.p==='No'?'No bus':p.p}</div></div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap">${res.act?`<button class="m s" onclick="record(PM['${p.u}'],'${res.act}')">${res.al}</button>`:''}${S.st==='bus'&&b?.bus===S.bus?mailBtn(p.u):''}${e&&(e.sid===S.sid||adm())&&!(S.st==='bus'&&closed())?`<button class="m s" onclick="undo('${e.id}')">↩ Undo</button>`:''}<button class="m s" onclick="res=null;render()">Next ➜</button></div></div>`}
+function busCard(){if(S.r!=='bus')return'';const m=mine(),n=m.length;
+ if(LEG.includes(S.st)){const k=m.filter(p=>D[p.u]?.[S.st]).length,ms=n-k;return`<div class="card" style="border-left:6px solid ${ST[S.st][2]}"><b>${ST[S.st][1]} Bus ${esc(S.bus)} · ${ST[S.st][0]}</b> <span class="tag ${ms?'rd':'g'}">${ms?`${k}/${n} · ${ms} missing`:`All ${n} aboard ✓`}</span><p style="margin:6px 0;color:var(--m);font-size:13px">Scan everyone before the bus leaves. Only Bus ${esc(S.bus)} passengers are accepted. See 📋 List → Missing to call anyone not here.</p></div>`}
+ if(S.st!=='bus')return'';const c=closed();
+ return`<div class="card" style="border-left:6px solid var(--o)"><b>🚌 Bus ${esc(S.bus)} · ${esc(S.pt)}</b> <span class="tag ${c?'g':'o'}">${c?'Confirmed & locked':n+' on board'}</span><p style="margin:6px 0;color:var(--m);font-size:13px">Each scan emails the attendee automatically (bus, National ID, T-shirt). When everyone is on board, send the full report.</p>${c?'':`<button class="m" style="width:100%;background:linear-gradient(135deg,#f58220,#cc1a3e)" onclick="confirmBus()">📨 Confirm bus & send full report</button>`}</div>`}
+const df=()=>flt||(S.st==='bus'?'exp':LEG.includes(S.st)?'miss':'mine');
+function src(){if(q){const s=q.toLowerCase();return P.filter(p=>(p.n+' '+p.id+' '+p.u+' '+p.nid).toLowerCase().includes(s))}
+ if(S.r==='bus'||(S.bus&&S.st!=='gate')){const f=df();if(f==='all')return P;if(S.st==='bus')return f==='mine'?mine():P.filter(p=>p.p===S.pt);return f==='miss'?mine().filter(p=>!D[p.u]?.[S.st]):mine()}return P}
+function pills(){if(!(S.r==='bus')||q)return'';const f=df(),co=ST[S.st][2],m=mine();
+ const L=S.st==='bus'?[['exp','Expected · '+P.filter(p=>p.p===S.pt).length],['mine','On my bus · '+m.length],['all','All']]:[['mine','My bus · '+m.length],['miss',(LEG.includes(S.st)?'🚨 Missing · ':'Not yet · ')+m.filter(p=>!D[p.u]?.[S.st]).length],['all','All']];
  return`<div class="pills">${L.map(([k,l])=>`<div class="pill ${f==k?'a':''}" style="${f==k?'background:'+co:''}" onclick="flt='${k}';render()">${l}</div>`).join('')}</div>`}
-function list(){const st=S.st,co=ST[st][2];let l=src().slice();l.sort((a,b)=>!!D[a.u]?.[st]-!!D[b.u]?.[st]||a.n.localeCompare(b.n));
- return`<div class="card"><input id="q" placeholder="🔎 Search name or ID" value="${esc(q)}" oninput="q=this.value;render()">${pills()}${l.length?'':'<p style="color:var(--m)">Nobody here 🎉</p>'}${l.slice(0,100).map((p,i)=>{const d=D[p.u]?.[st],miss=flt==='miss'||(flt===''&&0);
- return`<div class="row" style="--i:${i}"><div class="av" style="background:${co}">${esc(p.n[0])}</div><b>${esc(p.n)} <span class="info" onclick="info('${p.u}')">ⓘ</span><small>#${p.id} · 👕 ${esc(p.t||'—')} · ${CAT[p.c]}${miss&&p.ph?' · 📞 '+esc(p.ph):''}</small></b>
- ${d?`<span class="tag g">✓ ${tm(d.ts)}</span>`:`<button class="m s" style="color:${co}" onclick="res=null;record(PM['${p.u}'])">${st=='bus'?'Board':'Check'}</button>`}${st==='bus'&&d&&d.bus===S.bus?mailBtn(p.u):''}</div>`}).join('')}${l.length>100?'<p><small>Showing 100 – search to narrow.</small></p>':''}</div>`}
+function list(){const st=S.st,co=ST[st][2],sp=df()==='miss'||LEG.includes(st);let l=src().slice();l.sort((a,b)=>!!D[a.u]?.[st]-!!D[b.u]?.[st]||a.n.localeCompare(b.n));
+ return`<div class="card"><input id="q" placeholder="🔎 Search name, ID or National ID" value="${esc(q)}" oninput="q=this.value;render()">${pills()}${l.length?'':'<p style="color:var(--m)">Nobody here 🎉</p>'}${l.slice(0,100).map((p,i)=>{const d=D[p.u]?.[st],b=D[p.u]?.bus;
+ return`<div class="row" style="--i:${i}"><div class="av" style="background:${co}">${esc(p.n[0])}</div><b>${esc(p.n)} <span class="info" onclick="info('${p.u}')">ⓘ</span><small>#${p.id} · 👕 ${esc(p.t||'—')}${b?' · 🚌 '+esc(b.bus):''} · ${CAT[p.c]}${sp?tel(p.ph):''}</small></b>
+ ${d?`<span class="tag ${d.ov?'rd':'g'}">✓ ${tm(d.ts)}</span>`:`<button class="m s" style="color:${co}" onclick="res=null;record(PM['${p.u}'])">${st=='bus'?'Board':'Check'}</button>`}${st==='bus'&&d&&d.bus===S.bus?mailBtn(p.u):''}</div>`}).join('')}${l.length>100?'<p><small>Showing 100 – search to narrow.</small></p>':''}</div>`}
 const bar=(l,n,t,c)=>`<div style="margin:8px 0"><b>${l}</b> <span style="float:right"><b>${n}</b>/${t}</span><div class="pb" style="--c:${c}"><i style="width:${t?n/t*100:0}%"></i></div></div>`;
-function stats(){idx();if(S.r==='admin')return admin();const g=S.bus?mine():null;
- return`<div class="card"><h3>${g?'👥 My group · '+g.length+' people':'Overall'}</h3>${Object.entries(ST).filter(([k])=>g?k!=='gate':k===S.st).map(([k,v])=>bar(v[1]+' '+v[0],(g||P).filter(p=>D[p.u]?.[k]).length,(g||P).length,v[2])).join('')}</div>`}
+function stats(){idx();if(adm())return admin();const g=S.bus?mine():null;
+ return`<div class="card"><h3>${g?'👥 Bus '+esc(S.bus)+' · '+g.length+' people':'Overall'}</h3>${Object.entries(ST).filter(([k])=>g?k!=='gate':stations().includes(k)).map(([k,v])=>bar(v[1]+' '+v[0],(g||P).filter(p=>D[p.u]?.[k]).length,(g||P).length,v[2])).join('')}</div>`}
 function admin(){const n=P.length,E=EV.filter(e=>e.uid&&!V.has(e.id));
  const kp=Object.entries(ST).map(([k,v])=>{const c=P.filter(p=>D[p.u]?.[k]).length;return`<div class="kpi" style="--c:${v[2]}"><span>${v[1]}</span><b>${c}</b><small>${v[0]}</small><div class="pb"><i style="width:${c/n*100}%"></i></div></div>`}).join('');
- const bs=Object.entries(T).filter(([,t])=>t.r==='bus').map(([sid,t])=>{const m=P.filter(p=>D[p.u]?.bus?.bus===t.bus),r=EV.find(e=>e.st==='report'&&e.bus===t.bus&&!V.has(e.id));return`<tr><td><b>${esc(t.bus)}</b></td><td>${esc(t.n)}<br><small>${sid} · ${esc(t.pt)}</small></td><td>${m.length}</td><td>${m.filter(p=>D[p.u].mail).length}</td><td>${r?'✅ '+tm(r.ts):'⏳'}</td><td>${m.filter(p=>D[p.u].back).length}/${m.length}</td></tr>`}).join('');
- const sf=Object.entries(T).map(([sid,t])=>{const x=E.filter(e=>e.sid===sid);return`<tr><td><b>${sid}</b></td><td>${esc(t.n)}</td><td>${t.r}</td><td>${x.length}</td><td>${x.length?tm(Math.max(...x.map(e=>e.ts))):'—'}</td></tr>`}).join('');
+ const bs=Object.entries(T).filter(([,t])=>t.r==='bus').sort((a,b)=>a[1].bus.localeCompare(b[1].bus,undefined,{numeric:true})).map(([sid,t])=>{const m=P.filter(p=>D[p.u]?.bus?.bus===t.bus),r=EV.find(e=>e.st==='report'&&e.bus===t.bus&&!V.has(e.id));return`<tr><td><b>${esc(t.bus)}</b><br><small>${esc(t.pt)}</small></td><td>${esc(t.n)}<br><small>${sid}${t.ph?` · <a href="tel:${esc(t.ph)}">${esc(t.ph)}</a>`:''}</small></td><td><b>${m.length}</b></td><td>${m.filter(p=>MS?.st?.[D[p.u].mail?.id]==='sent').length}</td><td>${r?'✅ '+tm(r.ts):'⏳'}</td>${LEG.map(k=>`<td>${m.filter(p=>D[p.u][k]).length}</td>`).join('')}</tr>`}).join('');
+ const ov=E.filter(e=>e.ov).sort((a,b)=>b.ts-a.ts).map(e=>`<div class="row"><span>${ST[e.st][1]}</span><b>${esc(PM[e.uid]?.n)}<small>Bus ${esc(e.ov)} passenger · ${ST[e.st][0]} · by ${esc(e.by)}</small></b><span class="tag rd">${tm(e.ts)}</span></div>`).join('');
+ const sf=Object.entries(T).map(([sid,t])=>{const x=E.filter(e=>e.sid===sid);return`<tr><td><b>${sid}</b></td><td>${esc(t.n)}</td><td>${ROLE[t.r]}${t.bus?' '+esc(t.bus):''}</td><td>${x.length}</td><td>${x.length?tm(Math.max(...x.map(e=>e.ts))):'—'}</td></tr>`}).join('');
  const rc=E.sort((a,b)=>b.ts-a.ts).slice(0,10).map(e=>`<div class="row"><span>${ST[e.st]?.[1]||'✉'}</span><b>${esc(PM[e.uid]?.n)}<small>${ST[e.st]?.[0]||'Email'} · ${esc(e.by)}</small></b><span class="tag">${tm(e.ts)}</span></div>`).join('');
  return`<div class="card"><h3>📊 Live overview · ${n} people</h3><div class="kg">${kp}</div></div>
- <div class="card"><h3>🚌 Buses</h3><div class="sc"><table><tr><th>Bus</th><th>Coordinator</th><th>Boarded</th><th>✉</th><th>Report</th><th>Back</th></tr>${bs||'<tr><td colspan=6>No coordinators in the Staff sheet</td></tr>'}</table></div></div>
- <div class="card"><h3>✉️ Emails</h3>${MS?`<span class="tag g">${MS.sent} sent</span> <span class="tag o">${MS.todo} queued</span> <span class="tag rd">${MS.fail} failed</span><p><small>Daily mail quota left: ${MS.quota}</small></p>${MS.bad.map(x=>'<small>'+esc(x)+'</small><br>').join('')}`:'Appears after the first sync'}</div>
+ <div class="card"><h3>🚌 Buses</h3><div class="sc"><table><tr><th>Bus</th><th>Lead</th><th>Boarded</th><th>✉</th><th>Report</th>${LEG.map(k=>`<th>${ST[k][1]}</th>`).join('')}</tr>${bs||'<tr><td colspan=9>No bus leads in the Staff sheet</td></tr>'}</table></div></div>
+ ${ov?`<div class="card" style="border-left:6px solid var(--r)"><h3>🚫 Wrong-bus overrides</h3>${ov}</div>`:''}
+ <div class="card"><h3>✉️ Emails</h3>${MS?`<span class="tag g">${MS.sent} sent</span> <span class="tag o">${MS.todo} queued</span> <span class="tag rd">${MS.fail} failed</span> <span class="tag" style="background:#8aa">${MS.cancel||0} cancelled</span><p><small>Daily mail quota left: <b>${MS.quota}</b>${MS.quota<100?' ⚠️ low':''}</small></p>${MS.bad.map(x=>'<small>'+esc(x)+'</small><br>').join('')}`:'Appears after the first sync'}</div>
  <div class="card"><h3>🧑‍💼 Staff activity</h3><div class="sc"><table><tr><th>ID</th><th>Name</th><th>Role</th><th>Scans</th><th>Last</th></tr>${sf}</table></div></div>
  <div class="card"><h3>⏱ Recent</h3>${rc||'Nothing yet'}</div>
- <div class="card"><h3>⬇ Reports</h3><button class="m" onclick="rep('bus')">Bus manifest</button> <button class="m" style="background:var(--g)" onclick="rep('all')">Full attendance</button> <button class="m" style="background:var(--p)" onclick="rep('log')">Staff log</button></div>`}
-const csv=r=>r.map(x=>x.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
-function dl(n,r){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv(r)],{type:'text/csv'}));a.download=n;a.click()}
+ <div class="card"><h3>⬇ Reports</h3><button class="m" onclick="rep('bus')">Bus manifest</button> <button class="m" style="background:var(--g)" onclick="rep('all')">Full attendance</button> <button class="m" style="background:var(--p)" onclick="rep('log')">Staff log</button><p><small>Build ${BUILD}</small></p></div>`}
+const csv=r=>r.map(x=>x.map(c=>{c=String(c??'');if(/^(0\d+|\d{10,})$/.test(c))c='="'+c+'"';return'"'+c.replace(/"/g,'""')+'"'}).join(',')).join('\n');
+function dl(n,r){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv(r)],{type:'text/csv'}));a.download=n;a.click()}
 function rep(k){idx();const g=(u,s)=>D[u]?.[s],f=t=>t?new Date(t).toLocaleString():'';
- if(k==='bus')dl('bus_manifest.csv',[['Bus','Ticket ID','Name','Email','Category','Assigned point','National ID','T-shirt','Phone','Boarded at','Coordinator','Email status'],...P.filter(p=>g(p.u,'bus')).map(p=>{const b=g(p.u,'bus');return[b.bus,p.id,p.n,p.e,CAT[p.c],p.p,p.nid,p.t,p.ph,f(b.ts),b.by,g(p.u,'mail')?(MS?.st?.[g(p.u,'mail').id]||'queued'):'not sent']}).sort((a,b)=>a[0].localeCompare(b[0]))]);
- else if(k==='log')dl('staff_log.csv',[['Time','Staff ID','Staff','Station','Ticket ID','Person'],...EV.filter(e=>e.uid&&!V.has(e.id)).sort((a,b)=>a.ts-b.ts).map(e=>[f(e.ts),e.sid,e.by,ST[e.st]?.[0]||'Email',PM[e.uid]?.id,PM[e.uid]?.n])]);
+ if(k==='bus')dl('bus_manifest.csv',[['Bus','Ticket ID','Name','National ID','T-shirt','Phone','Category','Assigned point','Boarded at','Bus lead','Email status'],...P.filter(p=>g(p.u,'bus')).map(p=>{const b=g(p.u,'bus');return[b.bus,p.id,p.n,p.nid,p.t,p.ph,CAT[p.c],p.p,f(b.ts),b.by,g(p.u,'mail')?(MS?.st?.[g(p.u,'mail').id]||'queued'):'not sent']}).sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true}))]);
+ else if(k==='log')dl('staff_log.csv',[['Time','Staff ID','Staff','Station','Ticket ID','Person','Override (belongs to bus)'],...EV.filter(e=>e.uid&&!V.has(e.id)).sort((a,b)=>a.ts-b.ts).map(e=>[f(e.ts),e.sid,e.by,ST[e.st]?.[0]||'Email',PM[e.uid]?.id,PM[e.uid]?.n,e.ov||''])]);
  else dl('attendance_full.csv',[['Ticket ID','Name','Email','Category','Branch','National ID','T-shirt','Phone','Point','Bus',...Object.values(ST).map(s=>s[0])],...P.map(p=>[p.id,p.n,p.e,CAT[p.c],p.b,p.nid,p.t,p.ph,p.p,g(p.u,'bus')?.bus||'',...Object.keys(ST).map(s=>g(p.u,s)?tm(g(p.u,s).ts):'')])])}
 async function sync(){if(sy||!S)return;if(!API){SE='No backend URL set. Tap 🔗 and paste your Web app URL (ends with /exec).';return render(true)}if(!navigator.onLine)return;sy=1;
- try{const un=EV.filter(e=>!e.s),r=await fetch(API,{method:'POST',body:JSON.stringify({sid:S.sid,auth:S.h,events:un})}),t=await r.text();let j;try{j=JSON.parse(t)}catch{throw new Error('Backend returned a web page, not data. Deploy as Web app, Execute as Me, access = Anyone, URL ending /exec. Check Apps Script > Executions.')}
- if(j.error)throw new Error(j.error==='auth'?'Backend rejected your Staff ID/code. Paste the latest Code.gs and deploy a NEW version.':'Backend error: '+j.error);
- const have=new Set(EV.map(e=>e.id));un.forEach(e=>e.s=1);j.events.forEach(e=>{if(!have.has(e.id))EV.push({...e,s:1})});MS=j.mail;save();SE=''}
- catch(x){SE=/Failed to fetch|Load failed|NetworkError/.test(x.message)?'Cannot reach the backend. Check the URL (ends /exec) and that access is Anyone.':x.message}sy=0;render(true)}
+ try{const un=EV.filter(e=>!e.s),j=await post({sid:S.sid,auth:S.h,events:un});
+ if(j.error)throw new Error(j.error==='auth'?'Backend rejected your Staff ID/code. Paste the latest Code.gs and deploy a NEW version.':j.error==='locked'?'Account locked for 10 min after wrong codes.':'Backend error: '+j.error);
+ const have=new Set(EV.map(e=>e.id));un.forEach(e=>e.s=1);j.events.forEach(e=>{if(!have.has(e.id))EV.push({...e,s:1})});MS=j.mail;save();
+ SE=j.build&&j.build!==BUILD?`Site build ${BUILD} ≠ backend build ${j.build}. Re-upload site/ and paste the matching Code.gs.`:''}
+ catch(x){SE=netErr(x)}sy=0;render(true)}
 function render(soft){const A=$('#app');
- if(!S){A.className='w an';A.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:46px">🎟️</div><h2 style="margin:4px">IEEE Day 2026 · Fayoum</h2><p style="color:var(--m)">Sign in with your Staff ID and access code</p><input id="sid" placeholder="Staff ID (e.g. R1)" autocapitalize="characters" value="${esc(localStorage.getItem('lastsid')||'')}"><input id="pin" type="password" placeholder="Access code" autocapitalize="characters" onkeydown="if(event.key=='Enter')login()"><button class="m" style="width:100%;font-size:18px" onclick="login()">Enter 🚀</button><p><small style="color:var(--m)" onclick="const a=prompt('Backend URL',API);if(a!==null){API=a.trim();localStorage.setItem('api',API)}">🔗 Backend: ${API?'set ✓':'not set'}</small></p></div>`;return}
+ if(!S){A.className='w an';A.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:46px">🎟️</div><h2 style="margin:4px">IEEE Day 2026 · Fayoum</h2><p style="color:var(--m)">Sign in with your Staff ID and 6-digit code</p><input id="sid" placeholder="Staff ID (e.g. B1)" autocapitalize="characters" autocomplete="username" value="${esc(localStorage.getItem('lastsid')||'')}" onkeydown="if(event.key=='Enter')$('#pin').focus()"><input id="pin" class="idin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" placeholder="••••••" onkeydown="if(event.key=='Enter')login()"><button id="go" class="m" style="width:100%;font-size:18px" onclick="login()">Enter 🚀</button><p><small style="color:var(--m)" onclick="const a=prompt('Backend URL',API);if(a!==null){API=a.trim();localStorage.setItem('api',API);render()}">🔗 Backend: ${API?'set ✓':'not set'} · build ${BUILD}</small></p></div>`;$(localStorage.getItem('lastsid')?'#pin':'#sid').focus();return}
  if(soft&&document.activeElement?.tagName==='INPUT'&&document.activeElement.value)return;
  idx();const [nm,ic,co]=ST[S.st],pend=EV.filter(e=>!e.s).length,ss=stations();A.className=soft?'w':'w an';
- const body=view==='scan'?`${busCard()}<div class="card"><input id="id" class="idin" placeholder="Ticket ID" inputmode="numeric" autocomplete="off" onkeydown="if(event.key=='Enter'){handle(this.value);this.value=''}"><button class="m" style="width:100%" onclick="const i=$('#id');handle(i.value);i.value=''">Check in ➜</button></div>${resCard()}`:view==='list'?(S.st==='bus'?busCard():'')+list():stats();
- A.innerHTML=`<div class="top" style="background:linear-gradient(135deg,${co},${co}bb)"><span class="i">${ic}</span><div>${nm}<small>${esc(S.n)} · ${S.sid}${S.bus?' · Bus '+esc(S.bus):''}</small></div><span class="sp"></span><span class="chip" style="background:${navigator.onLine?'#2fa36b':'#cc1a3e'}">${navigator.onLine?'Online':'Offline'}${pend?' · '+pend:''}</span><span class="ic" onclick="sync()">🔄</span><span class="ic" onclick="const a=prompt('Backend URL (ends /exec)',API);if(a!==null){API=a.trim();localStorage.setItem('api',API);sync()}">🔗</span><span class="ic" onclick="logout()">⏏</span></div>
+ const body=view==='scan'?`${busCard()}<div class="card"><input id="id" class="idin" placeholder="Ticket ID" inputmode="numeric" autocomplete="off" onkeydown="if(event.key=='Enter'){handle(this.value);this.value=''}"><button class="m" style="width:100%" onclick="const i=$('#id');handle(i.value);i.value=''">Check in ➜</button></div>${resCard()}`:view==='list'?busCard()+list():stats();
+ A.innerHTML=`<div class="top" style="background:linear-gradient(135deg,${co},${co}bb)"><span class="i">${ic}</span><div>${nm}<small>${esc(S.n)} · ${S.sid} · ${ROLE[S.r]}${S.bus?' · Bus '+esc(S.bus):''}</small></div><span class="sp"></span><span class="chip" style="background:${navigator.onLine?'#2fa36b':'#cc1a3e'}">${navigator.onLine?'Online':'Offline'}${pend?' · '+pend:''}</span><span class="ic" onclick="sync()">🔄</span><span class="ic" onclick="const a=prompt('Backend URL (ends /exec)',API);if(a!==null){API=a.trim();localStorage.setItem('api',API);sync()}">🔗</span><span class="ic" onclick="logout()">⏏</span></div>
  ${ss.length>1?`<div class="pills">${ss.map(k=>`<div class="pill ${k==S.st?'a':''}" style="${k==S.st?'background:'+ST[k][2]:''}" onclick="setSt('${k}')">${ST[k][1]} ${ST[k][0]}</div>`).join('')}</div>`:''}
- ${SE?`<div class="err">⚠️ ${esc(SE)}</div>`:''}<div class="tabs">${[['scan','🔢 Scan'],['list','📋 List'],['stats',S.r==='admin'?'📊 Dashboard':'📈 Progress']].map(([k,l])=>`<button class="${view==k?'a':''}" onclick="view='${k}';res=null;render()">${l}</button>`).join('')}</div>${body}`;
+ ${SE?`<div class="err">⚠️ ${esc(SE)}</div>`:''}<div class="tabs">${[['scan','🔢 Scan'],['list','📋 List'],['stats',adm()?'📊 Dashboard':'📈 Progress']].map(([k,l])=>`<button class="${view==k?'a':''}" onclick="view='${k}';res=null;render()">${l}</button>`).join('')}</div>${body}`;
  if(view==='scan')$('#id')?.focus()}
 addEventListener('online',()=>{render(true);sync()});addEventListener('offline',()=>render(true));setInterval(sync,45000);
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
-(S?loadP(S.k).catch(()=>{S=null}):Promise.resolve()).then(()=>{render();sync()});
+(S?loadP(S.k).catch(()=>{S=null}):Promise.resolve()).then(()=>{if(S&&!ST[S.st])S.st=stations()[0];render();sync()});
 </script></body></html>
