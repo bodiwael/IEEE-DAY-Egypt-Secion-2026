@@ -41,7 +41,7 @@ const ROLE={bus:'Bus lead',reg:'Registration',kit:'Packages',joker:'Joker',admin
 const $=s=>document.querySelector(s),J=k=>JSON.parse(localStorage.getItem(k)||'null'),uuid=()=>crypto.randomUUID();
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)),nz=s=>s.toUpperCase().replace(/[^A-Z0-9]/g,'');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';'),tm=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-let EV=J('ev')||[],S=J('sess'),view='scan',res=null,q='',flt='',D={},V=new Set(),MS=null,SE='',sy=0;
+let EV=J('ev')||[],S=J('sess'),view='scan',res=null,q='',flt='',D={},V=new Set(),MS=null,SE='',sy=0,HB='';
 let API=localStorage.getItem('api')||API_DEFAULT;{const a=new URLSearchParams(location.search).get('api');if(a){localStorage.setItem('api',a);API=a;history.replaceState(null,'',location.pathname)}}
 const save=()=>localStorage.setItem('ev',JSON.stringify(EV));
 const adm=()=>S.r==='admin'||S.r==='joker';
@@ -57,17 +57,20 @@ const closed=()=>EV.some(e=>e.st==='report'&&e.bus===S.bus&&!V.has(e.id));
 const lead=bus=>{const t=Object.values(T).find(t=>t.r==='bus'&&t.bus===bus);return t?` · lead ${t.n}${t.ph?' '+t.ph:''}`:''};
 const tel=n=>n?` · <a href="tel:${esc(n)}" onclick="event.stopPropagation()">📞 ${esc(n)}</a>`:'';
 async function post(o){const r=await fetch(API,{method:'POST',body:JSON.stringify(o)}),t=await r.text();try{return JSON.parse(t)}catch{throw new Error('Backend returned a web page, not data. Deploy as Web app, Execute as Me, access = Anyone, URL ending /exec. Check Apps Script > Executions.')}}
+const OLDBE='Backend is running an OLD Code.gs. Paste the new Code.gs, then Deploy › Manage deployments › ✏️ › Version: New version › Deploy.',MISBE=b=>`Backend build ${b} ≠ site build ${BUILD}. Deploy site/ and Code.gs from the SAME build.`;
+async function ping(){if(!API){HB='';return}try{const j=await (await fetch(API)).json();HB=j.build||'old'}catch{HB='x'}if(!S)render()}
+const hbTxt=()=>!API?'⚠️ not set – tap here':HB===''?'checking…':HB==='x'?'❌ unreachable – check URL / access Anyone':HB==='old'?'❌ OLD Code.gs – deploy new version':HB!==BUILD?`❌ build ${HB} ≠ site ${BUILD}`:'✅ connected';
 const netErr=x=>/Failed to fetch|Load failed|NetworkError/.test(x.message)?'Cannot reach the backend. Check internet and the URL (ends /exec, access Anyone).':x.message;
 async function login(){const sid=nz($('#sid').value),code=nz($('#pin').value);if(!sid||!code)return toast('Enter your Staff ID and code');if(!API)return toast('Backend not set – tap 🔗 Backend below');
  const bt=$('#go');bt.disabled=true;bt.textContent='Signing in…';let j;
  try{j=await post({op:'login',sid,auth:await sha(sid+code)})}catch(x){bt.disabled=false;bt.textContent='Enter 🚀';return toast(netErr(x))}
  bt.disabled=false;bt.textContent='Enter 🚀';
- if(j.error)return toast(j.error==='locked'?'Too many wrong tries – wait 10 minutes':j.error==='auth'?'Wrong Staff ID or code':'Backend error: '+j.error);
+ if(j.error)return toast(j.error==='locked'?'Too many wrong tries – wait 10 minutes':!j.build?OLDBE:j.build!==BUILD?MISBE(j.build):j.error==='auth'?'Wrong Staff ID or code':'Backend error: '+j.error);
  try{await loadP(j.k)}catch{return toast(`Site (${BUILD}) and backend (${j.build}) are from different builds – redeploy both`)}
  const t=T[sid];if(!t)return toast('Staff ID not in this build');
  S={sid,n:t.n,r:t.r,bus:t.bus,pt:t.pt,ph:t.ph,e:t.e,k:j.k,h:await sha(sid+code),st:{bus:'bus',reg:'gate'}[t.r]||'kit'};
  localStorage.setItem('sess',JSON.stringify(S));localStorage.setItem('lastsid',sid);view=adm()?'stats':'scan';flt='';res=null;render();sync()}
-function logout(){if(EV.some(e=>!e.s)&&!confirm('Some scans are not synced yet. They stay on this phone and sync after the next sign-in. Sign out?'))return;S=null;localStorage.removeItem('sess');P=[];res=null;render()}
+function logout(){if(EV.some(e=>!e.s)&&!confirm('Some scans are not synced yet. They stay on this phone and sync after the next sign-in. Sign out?'))return;S=null;localStorage.removeItem('sess');P=[];res=null;render();ping()}
 function setSt(k){S.st=k;localStorage.setItem('sess',JSON.stringify(S));flt='';res=null;q='';render()}
 function show(k,p,msg,eid){res={k,u:p?.u,msg,eid};beep(k==='ok');render()}
 function ask(k,p,msg,act,al){res={k,u:p.u,msg,act,al};beep(0);render()}
@@ -146,12 +149,12 @@ function rep(k){idx();const g=(u,s)=>D[u]?.[s],f=t=>t?new Date(t).toLocaleString
  else dl('attendance_full.csv',[['Ticket ID','Name','Email','Category','Branch','National ID','T-shirt','Phone','Point','Bus',...Object.values(ST).map(s=>s[0])],...P.map(p=>[p.id,p.n,p.e,CAT[p.c],p.b,p.nid,p.t,p.ph,p.p,g(p.u,'bus')?.bus||'',...Object.keys(ST).map(s=>g(p.u,s)?tm(g(p.u,s).ts):'')])])}
 async function sync(){if(sy||!S)return;if(!API){SE='No backend URL set. Tap 🔗 and paste your Web app URL (ends with /exec).';return render(true)}if(!navigator.onLine)return;sy=1;
  try{const un=EV.filter(e=>!e.s),j=await post({sid:S.sid,auth:S.h,events:un});
- if(j.error)throw new Error(j.error==='auth'?'Backend rejected your Staff ID/code. Paste the latest Code.gs and deploy a NEW version.':j.error==='locked'?'Account locked for 10 min after wrong codes.':'Backend error: '+j.error);
+ if(j.error)throw new Error(!j.build?OLDBE:j.build!==BUILD?MISBE(j.build):j.error==='auth'?'Backend rejected your Staff ID/code. Sign out and in again.':j.error==='locked'?'Account locked for 10 min after wrong codes.':'Backend error: '+j.error);
  const have=new Set(EV.map(e=>e.id));un.forEach(e=>e.s=1);j.events.forEach(e=>{if(!have.has(e.id))EV.push({...e,s:1})});MS=j.mail;save();
- SE=j.build&&j.build!==BUILD?`Site build ${BUILD} ≠ backend build ${j.build}. Re-upload site/ and paste the matching Code.gs.`:''}
+ SE=!j.build?OLDBE:j.build!==BUILD?MISBE(j.build):''}
  catch(x){SE=netErr(x)}sy=0;render(true)}
 function render(soft){const A=$('#app');
- if(!S){A.className='w an';A.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:46px">🎟️</div><h2 style="margin:4px">IEEE Day 2026 · Fayoum</h2><p style="color:var(--m)">Sign in with your Staff ID and 6-digit code</p><input id="sid" placeholder="Staff ID (e.g. B1)" autocapitalize="characters" autocomplete="username" value="${esc(localStorage.getItem('lastsid')||'')}" onkeydown="if(event.key=='Enter')$('#pin').focus()"><input id="pin" class="idin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" placeholder="••••••" onkeydown="if(event.key=='Enter')login()"><button id="go" class="m" style="width:100%;font-size:18px" onclick="login()">Enter 🚀</button><p><small style="color:var(--m)" onclick="const a=prompt('Backend URL',API);if(a!==null){API=a.trim();localStorage.setItem('api',API);render()}">🔗 Backend: ${API?'set ✓':'not set'} · build ${BUILD}</small></p></div>`;$(localStorage.getItem('lastsid')?'#pin':'#sid').focus();return}
+ if(!S){A.className='w an';A.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:46px">🎟️</div><h2 style="margin:4px">IEEE Day 2026 · Fayoum</h2><p style="color:var(--m)">Sign in with your Staff ID and 6-digit code</p><input id="sid" placeholder="Staff ID (e.g. B1)" autocapitalize="characters" autocomplete="username" value="${esc(localStorage.getItem('lastsid')||'')}" onkeydown="if(event.key=='Enter')$('#pin').focus()"><input id="pin" class="idin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" placeholder="••••••" onkeydown="if(event.key=='Enter')login()"><button id="go" class="m" style="width:100%;font-size:18px" onclick="login()">Enter 🚀</button><p><small style="color:var(--m)" onclick="const a=prompt('Backend URL',API);if(a!==null){API=a.trim();localStorage.setItem('api',API);HB='';render();ping()}">🔗 Backend: ${hbTxt()} · site build ${BUILD}</small></p></div>`;$(localStorage.getItem('lastsid')?'#pin':'#sid').focus();return}
  if(soft&&document.activeElement?.tagName==='INPUT'&&document.activeElement.value)return;
  idx();const [nm,ic,co]=ST[S.st],pend=EV.filter(e=>!e.s).length,ss=stations();A.className=soft?'w':'w an';
  const body=view==='scan'?`${busCard()}<div class="card"><input id="id" class="idin" placeholder="Ticket ID" inputmode="numeric" autocomplete="off" onkeydown="if(event.key=='Enter'){handle(this.value);this.value=''}"><button class="m" style="width:100%" onclick="const i=$('#id');handle(i.value);i.value=''">Check in ➜</button></div>${resCard()}`:view==='list'?busCard()+list():stats();
@@ -161,5 +164,6 @@ function render(soft){const A=$('#app');
  if(view==='scan')$('#id')?.focus()}
 addEventListener('online',()=>{render(true);sync()});addEventListener('offline',()=>render(true));setInterval(sync,45000);
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
-(S?loadP(S.k).catch(()=>{S=null}):Promise.resolve()).then(()=>{if(S&&!ST[S.st])S.st=stations()[0];render();sync()});
+(S?loadP(S.k).catch(()=>{S=null}):Promise.resolve()).then(()=>{if(S&&!ST[S.st])S.st=stations()[0];render();sync();ping()});
+
 </script></body></html>
