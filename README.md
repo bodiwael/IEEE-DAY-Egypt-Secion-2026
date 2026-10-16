@@ -8,7 +8,7 @@
 - `staff_codes.csv` – Staff ID + 6-digit code per person. Hand out individually. **Private – not in git.**
 - `api_url.txt` (optional) – your Apps Script `/exec` URL; build.py bakes it into the site so phones need no link.
 
-Every build creates a new data key, so **always deploy `site/` and `Code.gs` from the same build**. The app shows a red warning if they don't match.
+The data key is reused from the last `backend/Code.gs`, so a new site works with an older `Code.gs` and vice versa. `python3 build.py --new-key` rotates it (then redeploy both). Bus WhatsApp links live in the `WhatsApp` column of the Staff tab (or edit `WHATSAPP` directly in Apps Script).
 
 ## Event flow (stations)
 | Station | Who scans |
