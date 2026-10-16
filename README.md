@@ -28,8 +28,9 @@ Roles (Staff tab): `admin` = Lead (dashboard + everything), `joker` = same as ad
 5. Before the event: `TEST_TO=''`, Manage deployments > New version. Clear test rows in `Events` and `Mail`.
 
 ## Hosting `site/`
-- **Netlify Drop (fastest):** app.netlify.com/drop → drag the `site` folder → you get `https://xxx.netlify.app`. To update: Site > Deploys > drag the folder again (same URL).
-- **Cloudflare Pages / Vercel:** connect this repo, build command none, output directory `site`.
+- **Vercel (from GitHub):** vercel.com/new → Import this repo → Framework Preset **Other**, Root Directory **`site`**, no build command → Deploy. Every push to the production branch (`main`) redeploys. Give staff the **production** URL (`https://<project>.vercel.app`); preview URLs ask for a Vercel login.
+- **Vercel (CLI, no GitHub):** `npx vercel login` once, then `npx vercel deploy site --prod`. Run the same command after every rebuild.
+- **Netlify Drop / Cloudflare Pages:** drag `site` to app.netlify.com/drop, or connect the repo with output directory `site`.
 - Staff open the URL on their phone → Share/menu → **Add to Home Screen**.
 
 ## Changing staff / bus assignments
