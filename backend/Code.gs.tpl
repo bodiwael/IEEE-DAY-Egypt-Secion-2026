@@ -12,10 +12,10 @@ const esc_=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;'
 function doGet(){return out_({ok:true,msg:'IEEE Day backend is running',build:BUILD})}
 function doPost(e){
   let b;try{b=JSON.parse(e.postData.contents)}catch(x){return out_({error:'bad'})}
-  const sid=String(b.sid||'').slice(0,12);if(!STAFF[sid])return out_({error:'auth'});
+  const sid=String(b.sid||'').slice(0,12);if(!STAFF[sid])return out_({error:'auth',build:BUILD});
   const PR=PropertiesService.getScriptProperties(),fk='fail_'+sid,f=JSON.parse(PR.getProperty(fk)||'{"n":0,"t":0}');
-  if(f.n>=MAX_FAILS&&Date.now()-f.t<LOCK_MS)return out_({error:'locked'});
-  if(STAFF[sid]!==b.auth){PR.setProperty(fk,JSON.stringify({n:(f.n>=MAX_FAILS?0:f.n)+1,t:Date.now()}));return out_({error:'auth'})}
+  if(f.n>=MAX_FAILS&&Date.now()-f.t<LOCK_MS)return out_({error:'locked',build:BUILD});
+  if(STAFF[sid]!==b.auth){PR.setProperty(fk,JSON.stringify({n:(f.n>=MAX_FAILS?0:f.n)+1,t:Date.now()}));return out_({error:'auth',build:BUILD})}
   if(f.n)PR.deleteProperty(fk);
   if(b.op==='login')return out_({k:DATA_KEY,build:BUILD});
   const L=LockService.getScriptLock();L.waitLock(28000);
