@@ -25,13 +25,19 @@ function doPost(e){
   try{
     const E=sh_('Events',['id','json']),M=sh_('Mail',MH);
     const n=E.getLastRow(),rows=n>1?E.getRange(2,1,n-1,2).getValues():[],have={};rows.forEach(r=>have[r[0]]=1);
+    // The Events sheet is the source of truth. If its row count differs from what we last wrote, rows were deleted/added by hand
+    // -> new epoch -> every phone throws away its copy and reloads the sheet on its next sync.
+    let ep=PR.getProperty('ep');if(!ep||+PR.getProperty('cnt')!==rows.length)ep=String(Date.now());
+    const from=b.ep===ep&&b.n>=0&&b.n<=rows.length?b.n:0;
     const add=[],mail=[],now=Date.now();
-    (b.events||[]).forEach(ev=>{if(have[ev.id])return;have[ev.id]=1;delete ev.s;const j=JSON.stringify(ev);add.push([ev.id,j]);rows.push([ev.id,j]);
+    const RS=+PR.getProperty('rs')||0;   // scans made before the last resetAll() are stale test data
+    (b.events||[]).forEach(ev=>{if(have[ev.id]||+ev.ts<RS)return;have[ev.id]=1;delete ev.s;const j=JSON.stringify(ev);add.push([ev.id,j]);rows.push([ev.id,j]);
       if(ev.st==='mail'||ev.st==='report')mail.push([ev.id,ev.st,'todo',0,'',now])});
     if(add.length)E.getRange(E.getLastRow()+1,1,add.length,2).setValues(add);
+    PR.setProperties({ep:ep,cnt:String(rows.length)});
     if(mail.length)M.getRange(M.getLastRow()+1,1,mail.length,6).setValues(mail);
     pump_(10);
-    return out_({events:rows.map(r=>JSON.parse(r[1])),mail:stat_(),build:BUILD});
+    return out_({events:rows.slice(from).map(r=>JSON.parse(r[1])),full:from===0,ep:ep,n:rows.length,mail:stat_(),build:BUILD});
   }finally{L.releaseLock()}
 }
 function pump_(max){
@@ -39,11 +45,12 @@ function pump_(max){
   const d=M.getRange(2,1,n-1,6).getValues(),now=Date.now();
   const due=r=>(r[2]==='todo'||(r[2]==='fail'&&r[3]<MAX_TRIES))&&!(r[1]==='mail'&&now-(+r[5]||0)<GRACE_MS);
   if(!d.some(due))return;
-  const E=sh_('Events',[]),EV={},V={};E.getRange(2,1,E.getLastRow()-1,2).getValues().forEach(r=>{EV[r[0]]=r[1];if(r[1].indexOf('"void"')>0)V[JSON.parse(r[1]).ref]=1});
+  const E=sh_('Events',[]),EV={},V={};(E.getLastRow()>1?E.getRange(2,1,E.getLastRow()-1,2).getValues():[]).forEach(r=>{EV[r[0]]=r[1];if(r[1].indexOf('"void"')>0)V[JSON.parse(r[1]).ref]=1});
   const t0=Date.now();let sent=0;
   for(let i=0;i<d.length&&sent<max&&Date.now()-t0<20000;i++){const r=d[i];
     if(!due(r))continue;
     if(MailApp.getRemainingDailyQuota()<1)break;
+    if(!EV[r[0]]){M.getRange(i+2,3,1,3).setValues([['cancel',r[3],'event row deleted']]);continue}
     try{const ev=JSON.parse(EV[r[0]]);
       if(r[1]==='mail'&&(V[ev.id]||V[ev.ref])){M.getRange(i+2,3,1,3).setValues([['cancel',r[3],'scan was undone']]);continue}
       if(r[1]==='mail')sendPerson_(ev);else sendReport_(ev);
@@ -81,3 +88,6 @@ function stat_(){const M=sh_('Mail',MH),n=M.getLastRow(),d=n>1?M.getRange(2,1,n-
   return{sent:d.filter(r=>r[2]==='sent').length,fail:d.filter(r=>r[2]==='fail').length,todo:d.filter(r=>r[2]==='todo').length,cancel:d.filter(r=>r[2]==='cancel').length,quota:MailApp.getRemainingDailyQuota(),st:st,bad:d.filter(r=>r[2]==='fail').slice(-8).map(r=>r[1]+': '+r[4])}}
 function cron(){const L=LockService.getScriptLock();if(!L.tryLock(20000))return;try{pump_(40)}finally{L.releaseLock()}}
 function setup(){ScriptApp.getProjectTriggers().forEach(t=>ScriptApp.deleteTrigger(t));ScriptApp.newTrigger('cron').timeBased().everyMinutes(1).create();Logger.log('Mail quota left today: '+MailApp.getRemainingDailyQuota())}
+// Run this once from the editor to wipe ALL test data (Events + Mail). Every phone clears its copy on its next sync.
+function resetAll(){const L=LockService.getScriptLock();L.waitLock(28000);try{['Events','Mail'].forEach(n=>{const s=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(n);if(s&&s.getLastRow()>1)s.deleteRows(2,s.getLastRow()-1)});
+  PropertiesService.getScriptProperties().setProperties({ep:String(Date.now()),cnt:'0',rs:String(Date.now())})}finally{L.releaseLock()}}

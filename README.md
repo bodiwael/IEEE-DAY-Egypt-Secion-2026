@@ -23,9 +23,12 @@ Roles (Staff tab): `admin` = Lead (dashboard + everything), `joker` = same as ad
 ## Setup
 1. Google Sheet > Extensions > Apps Script: replace ALL code with `backend/Code.gs`. Delete old `Events` and `Mail` tabs (test data).
 2. Put your email in `TEST_TO` while testing. Run `setup` once (check the log: mail quota – a normal Gmail account sends only ~100/day; use a Google Workspace account for 400+).
-3. Deploy > New deployment > Web app > Execute as **Me** > Access **Anyone**. Copy the `/exec` URL into `api_url.txt` and run `python3 build.py` again, then paste the NEW `Code.gs` and Deploy > Manage deployments > ✏️ > **New version** (the URL stays the same).
+3. Deploy > New deployment > Web app > Execute as **Me** > Access **Anyone**. Put the `/exec` URL in `api_url.txt` and run `python3 build.py`: the URL is built into the site, so no phone ever has to enter it.
 4. Host `site/` (below). Sign in with a Staff ID (e.g. `B1`) + 6-digit code. Sign-in needs internet once; after that the phone works offline.
-5. Before the event: `TEST_TO=''`, Manage deployments > New version. Clear test rows in `Events` and `Mail`.
+5. Before the event: `TEST_TO=''`, Manage deployments > New version. Then select **`resetAll`** and Run: it wipes all test scans and emails, and every phone clears its copy on its next sync (old test scans still on a phone are rejected).
+
+## Data = the Google Sheet
+The `Events` sheet is the single source of truth. Phones reload it whenever rows were deleted or added by hand, so a row you delete disappears from every phone within a minute. Scans made offline stay on the phone (🔄 chip shows the count) until they reach the sheet.
 
 ## Hosting `site/`
 - **Vercel (from GitHub):** vercel.com/new → Import this repo → Framework Preset **Other**, Root Directory **`site`**, no build command → Deploy. Every push to the production branch (`main`) redeploys. Give staff the **production** URL (`https://<project>.vercel.app`); preview URLs ask for a Vercel login.
