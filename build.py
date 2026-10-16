@@ -2,10 +2,11 @@
 """Reads Master_Sheet.xlsx -> builds site/ (encrypted attendee data), backend/Code.gs (holds the data key + staff code hashes), staff_codes.csv
    Usage: pip install openpyxl cryptography   then   python3 build.py [Master_Sheet.xlsx]
    Optional: put your Apps Script /exec URL in api_url.txt so phones need no ?api= link.
-   ALWAYS deploy site/ AND Code.gs together - each build has a new data key."""
+   The data key is reused from the last backend/Code.gs, so an old site keeps working with a new Code.gs and vice versa.
+   python3 build.py --new-key   rotates the key (then site/ AND Code.gs must both be redeployed)."""
 import openpyxl,json,os,re,base64,hashlib,secrets,csv,sys,shutil,time
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-H=os.path.dirname(os.path.abspath(__file__));XL=sys.argv[1] if len(sys.argv)>1 else H+'/Master_Sheet.xlsx'
+H=os.path.dirname(os.path.abspath(__file__));ARGS=[a for a in sys.argv[1:] if not a.startswith('--')];XL=ARGS[0] if ARGS else H+'/Master_Sheet.xlsx'
 SALT='ieee26fy';CATS={'VIP':'VIP','Former Officers':'FO','YP':'YP','SAC':'SAC','Ambassador':'AMB','Attendees':'AT','Volunteers':'VOL'}
 ROLES={'bus','reg','kit','joker','admin'}
 A={'id':['id','ticket id'],'name':['name'],'email':['email'],'point':['point'],'branch':['student branch','branch'],'nid':['national id','nationalid','nid'],'tshirt':['t-shirt size','tshirt','t-shirt','size'],'phone':['phone','mobile']}
@@ -37,7 +38,7 @@ for ws in wb:
         if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$',em):warn.append(f'{ws.title} {i}: invalid email "{em}"')
         if u in seen:warn.append(f'DUPLICATE ticket {u}')
         seen[u]=1;P.append([u,i,' '.join(g(r,'name').split()),em,pt,cat,g(r,'branch'),nid,g(r,'tshirt').upper(),g(r,'phone')])
-sheet=wb['Staff'];T={};srows=list(sheet.iter_rows(values_only=True));sh=[s(x).lower() for x in srows[0]]
+sheet=wb['Staff'];T={};WA={};srows=list(sheet.iter_rows(values_only=True));sh=[s(x).lower() for x in srows[0]]
 cv=lambda r,n:s(r[sh.index(n)]) if n in sh and sh.index(n)<len(r) else ''
 for r in srows[1:]:
     if not s(r[0]):continue
@@ -45,10 +46,14 @@ for r in srows[1:]:
     if role not in ROLES:warn.append(f'Staff {sid}: bad role "{role}" (use {sorted(ROLES)})');continue
     if role=='bus' and not cv(r,'bus'):warn.append(f'Staff {sid}: bus lead without a Bus number');continue
     T[sid]=dict(n=cv(r,'name'),r=role,bus=cv(r,'bus'),pt=cv(r,'point'),e=cv(r,'email'),ph=cv(r,'phone'))
+    if role=='bus':
+        WA[T[sid]['bus']]=cv(r,'whatsapp')
+        if not WA[T[sid]['bus']]:warn.append(f'Staff {sid}: Bus {T[sid]["bus"]} has no WhatsApp group link (email will skip it)')
 codes={}
 if os.path.exists(H+'/staff_codes.csv'):codes={r['staff_id']:r['code'] for r in csv.DictReader(open(H+'/staff_codes.csv')) if re.fullmatch(r'\d{6}',r['code'])}
 for sid in T:codes.setdefault(sid,''.join(secrets.choice('0123456789') for _ in range(6)))
-K=os.urandom(32);iv=os.urandom(12);BUILD=time.strftime('%d%b-%H%M')
+OLD=open(H+'/backend/Code.gs').read() if os.path.exists(H+'/backend/Code.gs') else '';mk=re.search(r"DATA_KEY='([^']+)'",OLD)
+K=base64.b64decode(mk.group(1)) if mk and '--new-key' not in sys.argv else os.urandom(32);iv=os.urandom(12);BUILD=time.strftime('%d%b-%H%M')
 DATA=[b(iv),b(AESGCM(K).encrypt(iv,json.dumps({'P':P,'T':T},separators=(',',':'),ensure_ascii=False).encode(),None))]
 API=open(H+'/api_url.txt').read().strip() if os.path.exists(H+'/api_url.txt') else ''
 os.makedirs(H+'/site',exist_ok=True)
@@ -57,7 +62,7 @@ open(H+'/site/index.html','w').write(t)
 for f in('sw.js','manifest.json','icon-192.png','icon-512.png'):shutil.copy(H+'/assets/'+f,H+'/site/'+f)
 open(H+'/site/.nojekyll','w').write('')
 hs={sid:hashlib.sha256((SALT+sid+codes[sid]).encode()).hexdigest() for sid in T}
-open(H+'/backend/Code.gs','w').write(open(H+'/backend/Code.gs.tpl').read().replace('__STAFF__',json.dumps(hs)).replace('__KEY__',b(K)).replace('__BUILD__',BUILD))
+open(H+'/backend/Code.gs','w').write(open(H+'/backend/Code.gs.tpl').read().replace('__STAFF__',json.dumps(hs)).replace('__KEY__',b(K)).replace('__WA__',json.dumps(WA)).replace('__BUILD__',BUILD))
 w=csv.writer(open(H+'/staff_codes.csv','w',newline=''));w.writerow(['staff_id','name','role','bus','phone','code'])
 for sid,x in T.items():w.writerow([sid,x['n'],x['r'],x['bus'],x['ph'],codes[sid]])
 nf=sum(1 for p in P if p[7]);tf=sum(1 for p in P if p[8]);pf=sum(1 for p in P if p[9])
@@ -65,4 +70,4 @@ print(f'OK build {BUILD}: {len(P)} people, {len(T)} staff. NID filled:{nf} T-shi
 if P and (nf==0 or tf==0):print('!!! ERROR: National ID / T-shirt columns are EMPTY - check the sheet headers and that you saved the file. The app will show "—".')
 for x in warn[:40]:print('WARNING:',x)
 print(f'({len(warn)} warnings)')
-print('NEXT: paste backend/Code.gs into Apps Script > Deploy > Manage deployments > edit > New version, AND re-upload site/. Both are needed.' + ('' if API else '  (api_url.txt not set: open the site once with ?api=YOUR_EXEC_URL)'))
+print(('NEW data key: redeploy BOTH site/ and Code.gs. ' if not mk or '--new-key' in sys.argv else 'Data key reused: site/ and Code.gs stay compatible. ')+'Paste backend/Code.gs > Deploy > Manage deployments > edit > New version; re-upload site/.' + ('' if API else '  (api_url.txt not set: open the site once with ?api=YOUR_EXEC_URL)'))

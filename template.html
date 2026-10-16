@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>IEEE Day 2026 · Fayoum</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#00adef"><link rel="icon" href="icon-192.png">
+<title>IEEE Day Egypt Section 2026 · Fayoum</title><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#00adef"><link rel="icon" href="icon-192.png">
 <style>
 :root{--b:#00adef;--g:#6abf4b;--o:#f58220;--y:#f9a51a;--p:#93308f;--r:#cc1a3e;--n:#0072bc;--t:#12304d;--m:#6b829a;--l:#e3eef9}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Arial;color:var(--t);background:linear-gradient(180deg,#e6f5ff,#fff 320px) fixed #fff;padding-bottom:40px}
@@ -52,20 +52,21 @@ function toast(m){const t=document.createElement('div');t.className='toast';t.te
 function beep(ok){navigator.vibrate&&navigator.vibrate(ok?60:[80,60,80]);try{const a=new AudioContext(),o=a.createOscillator();o.frequency.value=ok?880:220;o.connect(a.destination);o.start();o.stop(a.currentTime+.12)}catch{}}
 function idx(){D={};V=new Set(EV.filter(e=>e.st==='void').map(e=>e.ref));EV.filter(e=>e.uid&&!V.has(e.id)).sort((a,b)=>a.ts-b.ts).forEach(e=>{(D[e.uid]=D[e.uid]||{})[e.st]??=e})}
 const stations=()=>adm()?Object.keys(ST):RS[S.r]||[S.r];
+const expd=p=>p.p===S.pt||(S.pt==='October'&&p.p==='No');   // October bus also expects people who chose no pickup point
 const mine=()=>P.filter(p=>D[p.u]?.bus?.bus===S.bus);
 const closed=()=>EV.some(e=>e.st==='report'&&e.bus===S.bus&&!V.has(e.id));
 const lead=bus=>{const t=Object.values(T).find(t=>t.r==='bus'&&t.bus===bus);return t?` · lead ${t.n}${t.ph?' '+t.ph:''}`:''};
 const tel=n=>n?` · <a href="tel:${esc(n)}" onclick="event.stopPropagation()">📞 ${esc(n)}</a>`:'';
 async function post(o){const r=await fetch(API,{method:'POST',body:JSON.stringify(o)}),t=await r.text();try{return JSON.parse(t)}catch{throw new Error('Backend returned a web page, not data. Deploy as Web app, Execute as Me, access = Anyone, URL ending /exec. Check Apps Script > Executions.')}}
-const OLDBE='Backend is running an OLD Code.gs. Paste the new Code.gs, then Deploy › Manage deployments › ✏️ › Version: New version › Deploy.',MISBE=b=>`Backend build ${b} ≠ site build ${BUILD}. Deploy site/ and Code.gs from the SAME build.`;
+const OLDBE='Backend is running an OLD Code.gs. Paste the new Code.gs, then Deploy › Manage deployments › ✏️ › Version: New version › Deploy.';
 async function ping(){if(!API){HB='';return}try{const j=await (await fetch(API)).json();HB=j.build||'old'}catch{HB='x'}if(!S)render()}
-const hbTxt=()=>!API?'⚠️ not set – tap here':HB===''?'checking…':HB==='x'?'❌ unreachable – check URL / access Anyone':HB==='old'?'❌ OLD Code.gs – deploy new version':HB!==BUILD?`❌ build ${HB} ≠ site ${BUILD}`:'✅ connected';
+const hbTxt=()=>!API?'⚠️ not set – tap here':HB===''?'checking…':HB==='x'?'❌ unreachable – check URL / access Anyone':HB==='old'?'❌ OLD Code.gs – deploy new version':HB!==BUILD?`✅ connected (backend build ${HB})`:'✅ connected';
 const netErr=x=>/Failed to fetch|Load failed|NetworkError/.test(x.message)?'Cannot reach the backend. Check internet and the URL (ends /exec, access Anyone).':x.message;
 async function login(){const sid=nz($('#sid').value),code=nz($('#pin').value);if(!sid||!code)return toast('Enter your Staff ID and code');if(!API)return toast('Backend not set – tap 🔗 Backend below');
  const bt=$('#go');bt.disabled=true;bt.textContent='Signing in…';let j;
  try{j=await post({op:'login',sid,auth:await sha(sid+code)})}catch(x){bt.disabled=false;bt.textContent='Enter 🚀';return toast(netErr(x))}
  bt.disabled=false;bt.textContent='Enter 🚀';
- if(j.error)return toast(j.error==='locked'?'Too many wrong tries – wait 10 minutes':!j.build?OLDBE:j.build!==BUILD?MISBE(j.build):j.error==='auth'?'Wrong Staff ID or code':'Backend error: '+j.error);
+ if(j.error)return toast(j.error==='locked'?'Too many wrong tries – wait 10 minutes':!j.build?OLDBE:j.error==='auth'?'Wrong Staff ID or code'+(j.build!==BUILD?` (backend build ${j.build}, site ${BUILD})`:''):'Backend error: '+j.error);
  try{await loadP(j.k)}catch{return toast(`Site (${BUILD}) and backend (${j.build}) are from different builds – redeploy both`)}
  const t=T[sid];if(!t)return toast('Staff ID not in this build');
  S={sid,n:t.n,r:t.r,bus:t.bus,pt:t.pt,ph:t.ph,e:t.e,k:j.k,h:await sha(sid+code),st:{bus:'bus',reg:'gate'}[t.r]||'kit'};
@@ -86,7 +87,7 @@ function record(p,how){idx();const st=S.st,d=D[p.u]?.[st],b=D[p.u]?.bus,leg=LEG.
  if(st!=='bus'){e={id:uuid(),uid:p.u,st,ts:Date.now(),sid:S.sid,by:S.n};if(how==='ov')e.ov=b.bus;EV.push(e)}
  save();idx();
  const w=[],B=D[p.u].bus;
- if(st==='bus'&&p.p!==S.pt)w.push(p.p==='No'?'Was not assigned to a bus':'Was assigned to '+p.p);
+ if(st==='bus'&&!expd(p))w.push(p.p==='No'?'Was not assigned to a bus':'Was assigned to '+p.p);
  if(how==='add'&&closed())w.push('Added after your bus report was sent');
  if(how==='ov')w.push(`Override logged – belongs to Bus ${b.bus}`);
  if(leg&&!S.bus&&!B)w.push('Not on any bus');
@@ -117,9 +118,9 @@ function busCard(){if(S.r!=='bus')return'';const m=mine(),n=m.length;
  return`<div class="card" style="border-left:6px solid var(--o)"><b>🚌 Bus ${esc(S.bus)} · ${esc(S.pt)}</b> <span class="tag ${c?'g':'o'}">${c?'Confirmed & locked':n+' on board'}</span><p style="margin:6px 0;color:var(--m);font-size:13px">Each scan emails the attendee automatically (bus, National ID, T-shirt). When everyone is on board, send the full report.</p>${c?'':`<button class="m" style="width:100%;background:linear-gradient(135deg,#f58220,#cc1a3e)" onclick="confirmBus()">📨 Confirm bus & send full report</button>`}</div>`}
 const df=()=>flt||(S.st==='bus'?'exp':LEG.includes(S.st)?'miss':'mine');
 function src(){if(q){const s=q.toLowerCase();return P.filter(p=>(p.n+' '+p.id+' '+p.u+' '+p.nid).toLowerCase().includes(s))}
- if(S.r==='bus'||(S.bus&&S.st!=='gate')){const f=df();if(f==='all')return P;if(S.st==='bus')return f==='mine'?mine():P.filter(p=>p.p===S.pt);return f==='miss'?mine().filter(p=>!D[p.u]?.[S.st]):mine()}return P}
+ if(S.r==='bus'||(S.bus&&S.st!=='gate')){const f=df();if(f==='all')return P;if(S.st==='bus')return f==='mine'?mine():P.filter(expd);return f==='miss'?mine().filter(p=>!D[p.u]?.[S.st]):mine()}return P}
 function pills(){if(!(S.r==='bus')||q)return'';const f=df(),co=ST[S.st][2],m=mine();
- const L=S.st==='bus'?[['exp','Expected · '+P.filter(p=>p.p===S.pt).length],['mine','On my bus · '+m.length],['all','All']]:[['mine','My bus · '+m.length],['miss',(LEG.includes(S.st)?'🚨 Missing · ':'Not yet · ')+m.filter(p=>!D[p.u]?.[S.st]).length],['all','All']];
+ const L=S.st==='bus'?[['exp','Expected · '+P.filter(expd).length],['mine','On my bus · '+m.length],['all','All']]:[['mine','My bus · '+m.length],['miss',(LEG.includes(S.st)?'🚨 Missing · ':'Not yet · ')+m.filter(p=>!D[p.u]?.[S.st]).length],['all','All']];
  return`<div class="pills">${L.map(([k,l])=>`<div class="pill ${f==k?'a':''}" style="${f==k?'background:'+co:''}" onclick="flt='${k}';render()">${l}</div>`).join('')}</div>`}
 function list(){const st=S.st,co=ST[st][2],sp=df()==='miss'||LEG.includes(st);let l=src().slice();l.sort((a,b)=>!!D[a.u]?.[st]-!!D[b.u]?.[st]||a.n.localeCompare(b.n));
  return`<div class="card"><input id="q" placeholder="🔎 Search name, ID or National ID" value="${esc(q)}" oninput="q=this.value;render()">${pills()}${l.length?'':'<p style="color:var(--m)">Nobody here 🎉</p>'}${l.slice(0,100).map((p,i)=>{const d=D[p.u]?.[st],b=D[p.u]?.bus;
@@ -149,12 +150,12 @@ function rep(k){idx();const g=(u,s)=>D[u]?.[s],f=t=>t?new Date(t).toLocaleString
  else dl('attendance_full.csv',[['Ticket ID','Name','Email','Category','Branch','National ID','T-shirt','Phone','Point','Bus',...Object.values(ST).map(s=>s[0])],...P.map(p=>[p.id,p.n,p.e,CAT[p.c],p.b,p.nid,p.t,p.ph,p.p,g(p.u,'bus')?.bus||'',...Object.keys(ST).map(s=>g(p.u,s)?tm(g(p.u,s).ts):'')])])}
 async function sync(){if(sy||!S)return;if(!API){SE='No backend URL set. Tap 🔗 and paste your Web app URL (ends with /exec).';return render(true)}if(!navigator.onLine)return;sy=1;
  try{const un=EV.filter(e=>!e.s),j=await post({sid:S.sid,auth:S.h,events:un});
- if(j.error)throw new Error(!j.build?OLDBE:j.build!==BUILD?MISBE(j.build):j.error==='auth'?'Backend rejected your Staff ID/code. Sign out and in again.':j.error==='locked'?'Account locked for 10 min after wrong codes.':'Backend error: '+j.error);
+ if(j.error)throw new Error(!j.build?OLDBE:j.error==='auth'?'Backend rejected your Staff ID/code. Sign out and in again.':j.error==='locked'?'Account locked for 10 min after wrong codes.':'Backend error: '+j.error);
  const have=new Set(EV.map(e=>e.id));un.forEach(e=>e.s=1);j.events.forEach(e=>{if(!have.has(e.id))EV.push({...e,s:1})});MS=j.mail;save();
- SE=!j.build?OLDBE:j.build!==BUILD?MISBE(j.build):''}
+ SE=!j.build?OLDBE:''}
  catch(x){SE=netErr(x)}sy=0;render(true)}
 function render(soft){const A=$('#app');
- if(!S){A.className='w an';A.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:46px">🎟️</div><h2 style="margin:4px">IEEE Day 2026 · Fayoum</h2><p style="color:var(--m)">Sign in with your Staff ID and 6-digit code</p><input id="sid" placeholder="Staff ID (e.g. B1)" autocapitalize="characters" autocomplete="username" value="${esc(localStorage.getItem('lastsid')||'')}" onkeydown="if(event.key=='Enter')$('#pin').focus()"><input id="pin" class="idin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" placeholder="••••••" onkeydown="if(event.key=='Enter')login()"><button id="go" class="m" style="width:100%;font-size:18px" onclick="login()">Enter 🚀</button><p><small style="color:var(--m)" onclick="const a=prompt('Backend URL',API);if(a!==null){API=a.trim();localStorage.setItem('api',API);HB='';render();ping()}">🔗 Backend: ${hbTxt()} · site build ${BUILD}</small></p></div>`;$(localStorage.getItem('lastsid')?'#pin':'#sid').focus();return}
+ if(!S){A.className='w an';A.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:46px">🎟️</div><h2 style="margin:4px">IEEE Day Egypt Section 2026</h2><p style="color:var(--m)">Sign in with your Staff ID and 6-digit code</p><input id="sid" placeholder="Staff ID (e.g. B1)" autocapitalize="characters" autocomplete="username" value="${esc(localStorage.getItem('lastsid')||'')}" onkeydown="if(event.key=='Enter')$('#pin').focus()"><input id="pin" class="idin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" placeholder="••••••" onkeydown="if(event.key=='Enter')login()"><button id="go" class="m" style="width:100%;font-size:18px" onclick="login()">Enter 🚀</button><p><small style="color:var(--m)" onclick="const a=prompt('Backend URL',API);if(a!==null){API=a.trim();localStorage.setItem('api',API);HB='';render();ping()}">🔗 Backend: ${hbTxt()} · site build ${BUILD}</small></p></div>`;$(localStorage.getItem('lastsid')?'#pin':'#sid').focus();return}
  if(soft&&document.activeElement?.tagName==='INPUT'&&document.activeElement.value)return;
  idx();const [nm,ic,co]=ST[S.st],pend=EV.filter(e=>!e.s).length,ss=stations();A.className=soft?'w':'w an';
  const body=view==='scan'?`${busCard()}<div class="card"><input id="id" class="idin" placeholder="Ticket ID" inputmode="numeric" autocomplete="off" onkeydown="if(event.key=='Enter'){handle(this.value);this.value=''}"><button class="m" style="width:100%" onclick="const i=$('#id');handle(i.value);i.value=''">Check in ➜</button></div>${resCard()}`:view==='list'?busCard()+list():stats();

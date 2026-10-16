@@ -5,6 +5,8 @@ const STAFF=__STAFF__;
 const DATA_KEY='__KEY__',BUILD='__BUILD__';
 const REPORT_CC='Malk@ieee.org,mmossad2512@ieee.org';   // gets every bus report
 const TEST_TO='';   // while testing put YOUR email: ALL emails go only to you. Set '' before the event!
+const WHATSAPP=__WA__;   // bus number -> WhatsApp group link. You can edit links here directly (then Deploy > New version).
+const NAME='IEEE Day Egypt Section 2026';
 const MAX_TRIES=5,GRACE_MS=60000,MAX_FAILS=8,LOCK_MS=10*60000;   // GRACE: wait 1 min before emailing so a wrong scan can be undone
 const MH=['evId','kind','status','tries','error','queuedAt'];
 function sh_(n,h){const ss=SpreadsheetApp.getActiveSpreadsheet();let s=ss.getSheetByName(n);if(!s){s=ss.insertSheet(n);s.appendRow(h)}return s}
@@ -53,25 +55,27 @@ const when_=ts=>Utilities.formatDate(new Date(+ts),'Africa/Cairo','dd MMM yyyy, 
 const csvc_=c=>{c=String(c==null?'':c);if(/^(0\d+|\d{10,})$/.test(c))c='="'+c+'"';return'"'+c.replace(/"/g,'""')+'"'};   // keeps NID/phone as text in Excel
 function sendPerson_(ev){
   if(!/^\S+@\S+\.\S+$/.test(ev.to[1]))throw new Error('bad email '+ev.to[1]);
-  const lead=ev.lead||[],bus=esc_(ev.bus),cell=(k,v)=>'<tr><td style="padding:7px 10px;color:#6b829a">'+k+'</td><td style="padding:7px 10px;font-weight:bold">'+v+'</td></tr>';
-  const html='<div style="font-family:Arial;max-width:560px;margin:auto;border:1px solid #ddd;border-radius:14px;overflow:hidden;color:#12304d"><div style="height:8px;background:linear-gradient(90deg,#00adef,#6abf4b,#f9a51a,#f58220,#93308f,#cc1a3e)"></div><div style="padding:20px">'
-   +'<h2 style="color:#0072bc;margin:0 0 6px">IEEE Day 2026 · Fayoum</h2><p>Hello <b>'+esc_(ev.to[0])+'</b>,</p><p>You have been checked in and registered on:</p>'
-   +'<div style="background:#0072bc;color:#fff;border-radius:14px;padding:16px;text-align:center"><div style="font-size:13px;letter-spacing:2px">YOUR BUS</div><div style="font-size:44px;font-weight:bold;line-height:1.1">BUS '+bus+'</div><div>Pickup: '+esc_(ev.pt)+' · '+when_(ev.ts)+'</div></div>'
-   +'<table style="width:100%;border-collapse:collapse;margin:14px 0;background:#f2f7fc;border-radius:12px">'
-   +cell('🎫 Ticket ID',esc_(ev.tid))+cell('🪪 National ID',esc_(ev.nid||'—'))+cell('👕 T-shirt size',esc_(ev.t||'—'))+cell('🚌 Bus number','Bus '+bus)
-   +cell('👤 Bus lead',esc_(lead[0]||ev.by)+(lead[1]?' · <a href="tel:'+esc_(lead[1])+'">'+esc_(lead[1])+'</a>':''))+'</table>'
-   +'<div style="border:2px solid #cc1a3e;background:#fff1f3;border-radius:12px;padding:14px"><b style="color:#cc1a3e">⚠️ IMPORTANT — STAY ON BUS '+bus+' ALL DAY</b>'
-   +'<p style="margin:8px 0">Your name and National ID are on <b>Bus '+bus+'\'s security clearance list</b>. Every ride today — to the <b>Mountain</b>, <b>Sandboarding</b>, the <b>Falls</b> and the <b>return trip</b> — is checked against this list.</p>'
-   +'<p style="margin:8px 0">Switching to another bus is <b>not permitted</b>: it breaks the security clearance and the registration flow, and you may be refused boarding. Always return to <b>Bus '+bus+'</b> and check in with your bus lead.</p></div>'
+  const lead=ev.lead||[],bus=esc_(ev.bus),wa=WHATSAPP[ev.bus],cell=(k,v,big)=>'<tr><td style="padding:10px 14px;color:#6b829a;font-size:16px;border-bottom:1px solid #e3eef9">'+k+'</td><td style="padding:10px 14px;font-weight:bold;font-size:'+(big?'26px;color:#0072bc':'19px')+';border-bottom:1px solid #e3eef9">'+v+'</td></tr>';
+  const html='<div style="font-family:Arial,sans-serif;font-size:17px;line-height:1.5;max-width:620px;margin:auto;border:1px solid #ddd;border-radius:16px;overflow:hidden;color:#12304d"><div style="height:10px;background:linear-gradient(90deg,#00adef,#6abf4b,#f9a51a,#f58220,#93308f,#cc1a3e)"></div><div style="padding:24px">'
+   +'<h1 style="color:#0072bc;margin:0 0 8px;font-size:28px">'+NAME+' · Fayoum</h1><p style="font-size:18px">Hello <b>'+esc_(ev.to[0])+'</b>,</p><p style="font-size:18px">You have been checked in and registered on:</p>'
+   +'<div style="background:#0072bc;color:#fff;border-radius:16px;padding:20px;text-align:center"><div style="font-size:15px;letter-spacing:3px">YOUR BUS</div><div style="font-size:56px;font-weight:bold;line-height:1.1">BUS '+bus+'</div>'
+   +'<div style="font-size:15px;letter-spacing:3px;margin-top:10px">TICKET ID</div><div style="font-size:40px;font-weight:bold;line-height:1.1">'+esc_(ev.tid)+'</div><div style="font-size:16px;margin-top:8px">Pickup: '+esc_(ev.pt)+' · '+when_(ev.ts)+'</div></div>'
+   +(wa?'<div style="text-align:center;margin:18px 0"><a href="'+esc_(wa)+'" style="display:inline-block;background:#25d366;color:#fff;text-decoration:none;font-weight:bold;font-size:20px;padding:14px 26px;border-radius:30px">💬 Join the Bus '+bus+' WhatsApp group</a><div style="font-size:14px;color:#6b829a;margin-top:6px">All Bus '+bus+' announcements and timings are posted there.</div></div>':'')
+   +'<table style="width:100%;border-collapse:collapse;margin:16px 0;background:#f2f7fc;border-radius:12px">'
+   +cell('🎫 Ticket ID',esc_(ev.tid),1)+cell('🚌 Bus number','Bus '+bus,1)+cell('🪪 National ID',esc_(ev.nid||'—'))+cell('👕 T-shirt size',esc_(ev.t||'—'))
+   +cell('👤 Bus lead',esc_(lead[0]||ev.by)+(lead[1]?'<br><a href="tel:'+esc_(lead[1])+'">'+esc_(lead[1])+'</a>':''))+'</table>'
+   +'<div style="border:2px solid #cc1a3e;background:#fff1f3;border-radius:14px;padding:16px;font-size:17px"><b style="color:#cc1a3e;font-size:19px">⚠️ IMPORTANT — STAY ON BUS '+bus+' ALL DAY</b>'
+   +'<p style="margin:10px 0">Your name and National ID are on <b>Bus '+bus+'\'s security clearance list</b>. Every ride today — to the <b>Mountain</b>, <b>Sandboarding</b>, the <b>Falls</b> and the <b>return trip</b> — is checked against this list.</p>'
+   +'<p style="margin:10px 0">Switching to another bus is <b>not permitted</b>: it breaks the security clearance and the registration flow, and you may be refused boarding. Always return to <b>Bus '+bus+'</b> and check in with your bus lead.</p></div>'
    +'<p>Please check your National ID and T-shirt size above. If anything is wrong, tell your bus lead immediately.</p><p>Keep this email — show it if asked. Enjoy IEEE Day!</p></div></div>';
-  MailApp.sendEmail({to:TEST_TO||ev.to[1],name:'IEEE Day 2026 Fayoum',subject:'IEEE Day 2026 – You are on BUS '+ev.bus+' – stay on this bus all day',htmlBody:html});
+  MailApp.sendEmail({to:TEST_TO||ev.to[1],name:NAME,subject:'Bus '+ev.bus+' – '+NAME+' – Ticket '+ev.tid+' – stay on this bus all day',htmlBody:html});
 }
 function sendReport_(ev){
   const H=['Ticket ID','Name','Category','Branch','National ID','T-shirt','Phone','Boarded','Confirmation email'];
   const csv=[H].concat(ev.rows).map(r=>r.map(csvc_).join(',')).join('\n');
   const html='<div style="font-family:Arial"><h2 style="color:#0072bc">Bus '+esc_(ev.bus)+' ('+esc_(ev.pt)+') – confirmed</h2><p>Bus lead: <b>'+esc_(ev.by)+'</b> · '+when_(ev.ts)+' · <b>'+ev.rows.length+'</b> attendees</p><table border="1" cellpadding="5" style="border-collapse:collapse;font-size:13px"><tr style="background:#e3eef9">'+H.map(h=>'<th>'+h+'</th>').join('')+'</tr>'+ev.rows.map(r=>'<tr>'+r.map(c=>'<td>'+esc_(c)+'</td>').join('')+'</tr>').join('')+'</table><p>The CSV is attached.</p></div>';
   const to=TEST_TO||(ev.to||[]).join(',')||REPORT_CC;
-  MailApp.sendEmail({to:to,cc:TEST_TO?undefined:(ev.to&&ev.to.length?REPORT_CC:undefined),name:'IEEE Day 2026 Fayoum',subject:'Bus '+ev.bus+' report – '+ev.rows.length+' attendees',htmlBody:html,attachments:[Utilities.newBlob('﻿'+csv,'text/csv','bus_'+ev.bus+'_report.csv')]});
+  MailApp.sendEmail({to:to,cc:TEST_TO?undefined:(ev.to&&ev.to.length?REPORT_CC:undefined),name:NAME,subject:'Bus '+ev.bus+' report – '+ev.rows.length+' attendees',htmlBody:html,attachments:[Utilities.newBlob('﻿'+csv,'text/csv','bus_'+ev.bus+'_report.csv')]});
 }
 function stat_(){const M=sh_('Mail',MH),n=M.getLastRow(),d=n>1?M.getRange(2,1,n-1,5).getValues():[],st={};d.forEach(r=>st[r[0]]=r[2]);
   return{sent:d.filter(r=>r[2]==='sent').length,fail:d.filter(r=>r[2]==='fail').length,todo:d.filter(r=>r[2]==='todo').length,cancel:d.filter(r=>r[2]==='cancel').length,quota:MailApp.getRemainingDailyQuota(),st:st,bad:d.filter(r=>r[2]==='fail').slice(-8).map(r=>r[1]+': '+r[4])}}
