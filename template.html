@@ -38,19 +38,19 @@ const CAT={AT:'Attendee',FO:'Former Officer',VIP:'VIP',YP:'YP',SAC:'SAC',AMB:'Am
 const ST={bus:['Morning Bus','🚌','#f58220'],gate:['Arrival · no bus','🚪','#00adef'],kit:['Kit','🎒','#93308f'],lunch:['Lunch','🍽️','#4fa832'],mtn:['Bus → Mountain','⛰️','#cc1a3e'],sand:['Bus → Sandboard','🏜️','#e89200'],falls:['Bus → Falls','💦','#0072bc'],back:['Bus → Return','🏁','#00a99d']};
 const LEG=['mtn','sand','falls','back'],RS={bus:['bus','kit','lunch',...LEG],reg:['gate','kit','lunch'],kit:['kit','lunch']};
 const ROLE={bus:'Bus lead',reg:'Registration',kit:'Packages',joker:'Joker',admin:'Lead'};
-const $=s=>document.querySelector(s),J=k=>JSON.parse(localStorage.getItem(k)||'null'),uuid=()=>crypto.randomUUID();
+const $=s=>document.querySelector(s),J=k=>JSON.parse(localStorage.getItem(k)||'null'),uuid=()=>crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)),nz=s=>s.toUpperCase().replace(/[^A-Z0-9]/g,'');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';'),tm=t=>new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 let EV=J('ev')||[],S=J('sess'),view='scan',res=null,q='',flt='',D={},V=new Set(),MS=null,SE='',sy=0,HB='';
 // URL built into the site (api_url.txt) always wins; ?api= / 🔗 only work when none is built in
 let API=API_DEFAULT||localStorage.getItem('api')||'';{const a=new URLSearchParams(location.search).get('api');if(a&&!API_DEFAULT){localStorage.setItem('api',a);API=a;history.replaceState(null,'',location.pathname)}}
-const save=()=>localStorage.setItem('ev',JSON.stringify(EV));
+const save=()=>{const r=(J('cur')||{}).rid||'';EV.forEach(e=>{if(!e.s&&e.rid===undefined)e.rid=r});localStorage.setItem('ev',JSON.stringify(EV))};
 const adm=()=>S.r==='admin'||S.r==='joker';
 const sha=async s=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(SALT+s)))].map(x=>x.toString(16).padStart(2,'0')).join('');
 async function loadP(k){const key=await crypto.subtle.importKey('raw',b64(k),'AES-GCM',false,['decrypt']);const d=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(DATA[0])},key,b64(DATA[1]))));
  P=d.P.map(a=>({u:a[0],id:a[1],n:a[2],e:a[3],p:a[4],c:a[5],b:a[6],nid:a[7],t:a[8],ph:a[9]}));PM={};P.forEach(p=>PM[p.u]=p);T=d.T}
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3200)}
-function beep(ok){navigator.vibrate&&navigator.vibrate(ok?60:[80,60,80]);try{const a=new AudioContext(),o=a.createOscillator();o.frequency.value=ok?880:220;o.connect(a.destination);o.start();o.stop(a.currentTime+.12)}catch{}}
+function beep(ok){navigator.vibrate&&navigator.vibrate(ok?60:[80,60,80]);try{const a=beep.a=beep.a||new AudioContext(),o=a.createOscillator();a.resume&&a.resume();o.frequency.value=ok?880:220;o.connect(a.destination);o.start();o.stop(a.currentTime+.12)}catch{}}
 function idx(){D={};V=new Set(EV.filter(e=>e.st==='void').map(e=>e.ref));EV.filter(e=>e.uid&&!V.has(e.id)).sort((a,b)=>a.ts-b.ts).forEach(e=>{(D[e.uid]=D[e.uid]||{})[e.st]??=e})}
 const stations=()=>adm()?Object.keys(ST):RS[S.r]||[S.r];
 const expd=p=>p.p===S.pt||(S.pt==='October'&&p.p==='No');   // October bus also expects people who chose no pickup point
@@ -68,6 +68,7 @@ async function login(){const sid=nz($('#sid').value),code=nz($('#pin').value);if
  try{j=await post({op:'login',sid,auth:await sha(sid+code)})}catch(x){bt.disabled=false;bt.textContent='Enter 🚀';return toast(netErr(x))}
  bt.disabled=false;bt.textContent='Enter 🚀';
  if(j.error)return toast(j.error==='locked'?'Too many wrong tries – wait 10 minutes':!j.build?OLDBE:j.error==='auth'?'Wrong Staff ID or code'+(j.build!==BUILD?` (backend build ${j.build}, site ${BUILD})`:''):'Backend error: '+j.error);
+ {const c=J('cur')||{};if(c.api!==API||c.rid!==(j.rid||''))localStorage.setItem('cur',JSON.stringify({api:API,rid:j.rid||''}))}
  try{await loadP(j.k)}catch{return toast(`Site (${BUILD}) and backend (${j.build}) are from different builds – redeploy both`)}
  const t=T[sid];if(!t)return toast('Staff ID not in this build');
  S={sid,n:t.n,r:t.r,bus:t.bus,pt:t.pt,ph:t.ph,e:t.e,k:j.k,h:await sha(sid+code),st:{bus:'bus',reg:'gate'}[t.r]||'kit'};
@@ -81,20 +82,18 @@ function board(p){const e={id:uuid(),uid:p.u,st:'bus',ts:Date.now(),sid:S.sid,by
 function record(p,how){idx();const st=S.st,d=D[p.u]?.[st],b=D[p.u]?.bus,leg=LEG.includes(st);
  if(d)return show('dup',p,`Already registered at ${tm(d.ts)} by ${d.by}`+(st==='bus'?` · Bus ${d.bus}`:''));
  if(st==='bus'){if(S.r!=='bus')return toast('Boarding is done from a bus lead account');if(closed())return toast('Your bus is confirmed and locked')}
- if(leg&&S.bus&&!how){
-  if(!b)return ask('dup',p,`Not on any bus yet. Add to Bus ${S.bus} for the rest of the day? (confirmation email is sent)`,'add',`➕ Add to Bus ${S.bus}`);
+ if(S.r==='bus'&&st!=='bus'&&!how){   // bus leads handle ONLY their own passengers (Kit, Lunch and every bus ride)
+  if(!b)return leg?ask('dup',p,`Not on any bus yet. Add to Bus ${S.bus} for the rest of the day? (confirmation email is sent)`,'add',`➕ Add to Bus ${S.bus}`):ask('bad',p,'Not on your bus. Send them to the Registration desk.','ov','Allow anyway (logged)');
   if(b.bus!==S.bus)return ask('bad',p,`WRONG BUS – belongs to Bus ${b.bus}${lead(b.bus)}. Send them to their own bus.`,'ov','Allow anyway (logged)')}
  let e;if(st==='bus'||how==='add')e=board(p);
- if(st!=='bus'){e={id:uuid(),uid:p.u,st,ts:Date.now(),sid:S.sid,by:S.n};if(how==='ov')e.ov=b.bus;EV.push(e)}
+ if(st!=='bus'){e={id:uuid(),uid:p.u,st,ts:Date.now(),sid:S.sid,by:S.n};if(how==='ov')e.ov=b?b.bus:'-';EV.push(e)}
  save();idx();
  const w=[],B=D[p.u].bus;
  if(st==='bus'&&!expd(p))w.push(p.p==='No'?'Was not assigned to a bus':'Was assigned to '+p.p);
  if(how==='add'&&closed())w.push('Added after your bus report was sent');
- if(how==='ov')w.push(`Override logged – belongs to Bus ${b.bus}`);
+ if(how==='ov')w.push('Override logged – '+(b?'belongs to Bus '+b.bus:'not on any bus'));
  if(leg&&!S.bus&&!B)w.push('Not on any bus');
- if(!leg&&st!=='bus'&&st!=='gate'&&!B&&!D[p.u].gate)w.push('Not checked in this morning');
- if(S.bus&&!leg&&st!=='bus'&&st!=='gate')if(B?.bus!==S.bus)w.push(B?'Not in your group (Bus '+B.bus+')':'Not in your group');
- show(w.length?'dup':'ok',p,w.join(' · ')||(B&&st!=='bus'?`Bus ${B.bus} ✓ `:'Registered ✓ ')+tm(e.ts)+(st==='bus'||how==='add'?' · ✉ email in 1 min':''),e.id);sync()}
+ show(w.length?'dup':'ok',p,w.join(' · ')||(B&&st!=='bus'?`Bus ${B.bus} ✓ `:'Registered ✓ ')+tm(e.ts)+(!B&&(st==='kit'||st==='lunch')?' · no bus record':'')+(st==='bus'||how==='add'?' · ✉ email in 1 min':''),e.id);sync()}
 function handle(code){code=String(code).trim();if(!code)return;let m=P.filter(p=>p.u===code.toUpperCase());if(!m.length){const d=code.replace(/\D/g,'');m=P.filter(p=>p.id===d||p.id===d.padStart(3,'0'))}
  if(!m.length){res={k:'bad',msg:'No one has ID '+esc(code)};beep(0);return render()}
  if(m.length>1){beep(0);$('#sh').innerHTML=`<div class="sheet"><div><h2>⚠️ ID ${m[0].id} belongs to ${m.length} people</h2><p>Who is this?</p>${m.map(p=>`<div class="row"><div class="av" style="background:${p.c=='FO'?'#93308f':'#00adef'}">${p.n[0]}</div><b>${esc(p.n)}<small>${CAT[p.c]} ${esc(p.b)}</small></b><button class="m" onclick="cl();record(PM['${p.u}'])">${CAT[p.c]}</button></div>`).join('')}<button class="m s" style="margin-top:10px" onclick="cl()">Cancel</button></div></div>`;return}
@@ -133,7 +132,7 @@ function stats(){idx();if(adm())return admin();const g=S.bus?mine():null;
 function admin(){const n=P.length,E=EV.filter(e=>e.uid&&!V.has(e.id));
  const kp=Object.entries(ST).map(([k,v])=>{const c=P.filter(p=>D[p.u]?.[k]).length;return`<div class="kpi" style="--c:${v[2]}"><span>${v[1]}</span><b>${c}</b><small>${v[0]}</small><div class="pb"><i style="width:${c/n*100}%"></i></div></div>`}).join('');
  const bs=Object.entries(T).filter(([,t])=>t.r==='bus').sort((a,b)=>a[1].bus.localeCompare(b[1].bus,undefined,{numeric:true})).map(([sid,t])=>{const m=P.filter(p=>D[p.u]?.bus?.bus===t.bus),r=EV.find(e=>e.st==='report'&&e.bus===t.bus&&!V.has(e.id));return`<tr><td><b>${esc(t.bus)}</b><br><small>${esc(t.pt)}</small></td><td>${esc(t.n)}<br><small>${sid}${t.ph?` · <a href="tel:${esc(t.ph)}">${esc(t.ph)}</a>`:''}</small></td><td><b>${m.length}</b></td><td>${m.filter(p=>MS?.st?.[D[p.u].mail?.id]==='sent').length}</td><td>${r?'✅ '+tm(r.ts):'⏳'}</td>${LEG.map(k=>`<td>${m.filter(p=>D[p.u][k]).length}</td>`).join('')}</tr>`}).join('');
- const ov=E.filter(e=>e.ov).sort((a,b)=>b.ts-a.ts).map(e=>`<div class="row"><span>${ST[e.st][1]}</span><b>${esc(PM[e.uid]?.n)}<small>Bus ${esc(e.ov)} passenger · ${ST[e.st][0]} · by ${esc(e.by)}</small></b><span class="tag rd">${tm(e.ts)}</span></div>`).join('');
+ const ov=E.filter(e=>e.ov).sort((a,b)=>b.ts-a.ts).map(e=>`<div class="row"><span>${ST[e.st][1]}</span><b>${esc(PM[e.uid]?.n)}<small>${e.ov==='-'?'No bus':'Bus '+esc(e.ov)+' passenger'} · ${ST[e.st][0]} · by ${esc(e.by)}</small></b><span class="tag rd">${tm(e.ts)}</span></div>`).join('');
  const sf=Object.entries(T).map(([sid,t])=>{const x=E.filter(e=>e.sid===sid);return`<tr><td><b>${sid}</b></td><td>${esc(t.n)}</td><td>${ROLE[t.r]}${t.bus?' '+esc(t.bus):''}</td><td>${x.length}</td><td>${x.length?tm(Math.max(...x.map(e=>e.ts))):'—'}</td></tr>`}).join('');
  const rc=E.sort((a,b)=>b.ts-a.ts).slice(0,10).map(e=>`<div class="row"><span>${ST[e.st]?.[1]||'✉'}</span><b>${esc(PM[e.uid]?.n)}<small>${ST[e.st]?.[0]||'Email'} · ${esc(e.by)}</small></b><span class="tag">${tm(e.ts)}</span></div>`).join('');
  return`<div class="card"><h3>📊 Live overview · ${n} people</h3><div class="kg">${kp}</div></div>
@@ -155,7 +154,7 @@ async function sync(){if(sy||!S)return;if(!API){SE='No backend URL set. Tap 🔗
  const srv=j.events.map(e=>({...e,s:1})),sent=new Set(un.map(e=>e.id)),ids=new Set(srv.map(e=>e.id));
  if(j.full)EV=[...srv,...EV.filter(e=>!e.s&&!sent.has(e.id)&&!ids.has(e.id))];   // sheet = truth: drop anything the sheet no longer has
  else{un.forEach(e=>e.s=1);const have=new Set(EV.map(e=>e.id));srv.forEach(e=>{if(!have.has(e.id))EV.push(e)})}
- localStorage.setItem('cur',JSON.stringify({api:API,ep:j.ep,n:j.n}));MS=j.mail;save();
+ localStorage.setItem('cur',JSON.stringify({api:API,ep:j.ep,n:j.n,rid:j.rid||''}));MS=j.mail;save();
  SE=!j.build?OLDBE:''}
  catch(x){SE=netErr(x)}sy=0;render(true)}
 function render(soft){const A=$('#app');

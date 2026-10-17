@@ -15,7 +15,7 @@ The data key is reused from the last `backend/Code.gs`, so a new site works with
 |---|---|
 | 🚌 Morning Bus | Bus lead – each scan **auto-emails** the attendee (bus, National ID, T-shirt, lead phone, stay-on-your-bus notice) 1 min later. Undo within that minute cancels the email. |
 | 🚪 Arrival · no bus | Registration – people who come by themselves |
-| 🎒 Kit, 🍽️ Lunch | Registration / Packages / Bus leads |
+| 🎒 Kit, 🍽️ Lunch | Registration / Packages / Leads / Jokers: **anyone**. Bus leads: **only their own bus** (others → WRONG BUS, override logged). |
 | ⛰️ Mountain, 🏜️ Sandboard, 💦 Falls, 🏁 Return | Bus lead – only their own passengers. Another bus's passenger → red **WRONG BUS** (override is logged on the dashboard). Someone not on any bus → "Add to Bus X" (assigns them + emails them). |
 
 Roles (Staff tab): `admin` = Lead (dashboard + everything), `joker` = same as admin, `reg` = Arrival/Kit/Lunch, `kit` = Kit/Lunch, `bus` = bus lead (Bus = number, Point = Ramsis/October).
