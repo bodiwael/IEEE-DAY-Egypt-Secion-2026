@@ -20,7 +20,7 @@ function doPost(e){
   if(f.n>=MAX_FAILS&&Date.now()-f.t<LOCK_MS)return out_({error:'locked',build:BUILD});
   if(STAFF[sid]!==b.auth){PR.setProperty(fk,JSON.stringify({n:(f.n>=MAX_FAILS?0:f.n)+1,t:Date.now()}));return out_({error:'auth',build:BUILD})}
   if(f.n)PR.deleteProperty(fk);
-  if(b.op==='login')return out_({k:DATA_KEY,build:BUILD});
+  if(b.op==='login')return out_({k:DATA_KEY,build:BUILD,rid:PR.getProperty('rid')||''});
   const L=LockService.getScriptLock();L.waitLock(28000);
   try{
     const E=sh_('Events',['id','json']),M=sh_('Mail',MH);
@@ -30,14 +30,14 @@ function doPost(e){
     let ep=PR.getProperty('ep');if(!ep||+PR.getProperty('cnt')!==rows.length)ep=String(Date.now());
     const from=b.ep===ep&&b.n>=0&&b.n<=rows.length?b.n:0;
     const add=[],mail=[],now=Date.now();
-    const RS=+PR.getProperty('rs')||0;   // scans made before the last resetAll() are stale test data
-    (b.events||[]).forEach(ev=>{if(have[ev.id]||+ev.ts<RS)return;have[ev.id]=1;delete ev.s;const j=JSON.stringify(ev);add.push([ev.id,j]);rows.push([ev.id,j]);
+    const RID=PR.getProperty('rid')||'';   // scans stamped with an older reset id were made before resetAll() = stale test data
+    (b.events||[]).forEach(ev=>{if(have[ev.id]||(RID&&ev.rid!==RID))return;have[ev.id]=1;delete ev.s;const j=JSON.stringify(ev);add.push([ev.id,j]);rows.push([ev.id,j]);
       if(ev.st==='mail'||ev.st==='report')mail.push([ev.id,ev.st,'todo',0,'',now])});
     if(add.length)E.getRange(E.getLastRow()+1,1,add.length,2).setValues(add);
-    PR.setProperties({ep:ep,cnt:String(rows.length)});
+    if(add.length||ep!==PR.getProperty('ep'))PR.setProperties({ep:ep,cnt:String(rows.length)});   // write only on change (Properties quota)
     if(mail.length)M.getRange(M.getLastRow()+1,1,mail.length,6).setValues(mail);
     pump_(10);
-    return out_({events:rows.slice(from).map(r=>JSON.parse(r[1])),full:from===0,ep:ep,n:rows.length,mail:stat_(),build:BUILD});
+    return out_({events:rows.slice(from).map(r=>JSON.parse(r[1])),full:from===0,ep:ep,n:rows.length,rid:RID,mail:stat_(),build:BUILD});
   }finally{L.releaseLock()}
 }
 function pump_(max){
@@ -90,4 +90,4 @@ function cron(){const L=LockService.getScriptLock();if(!L.tryLock(20000))return;
 function setup(){ScriptApp.getProjectTriggers().forEach(t=>ScriptApp.deleteTrigger(t));ScriptApp.newTrigger('cron').timeBased().everyMinutes(1).create();Logger.log('Mail quota left today: '+MailApp.getRemainingDailyQuota())}
 // Run this once from the editor to wipe ALL test data (Events + Mail). Every phone clears its copy on its next sync.
 function resetAll(){const L=LockService.getScriptLock();L.waitLock(28000);try{['Events','Mail'].forEach(n=>{const s=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(n);if(s&&s.getLastRow()>1)s.deleteRows(2,s.getLastRow()-1)});
-  PropertiesService.getScriptProperties().setProperties({ep:String(Date.now()),cnt:'0',rs:String(Date.now())})}finally{L.releaseLock()}}
+  PropertiesService.getScriptProperties().setProperties({ep:String(Date.now()),cnt:'0',rid:String(Date.now())})}finally{L.releaseLock()}}
